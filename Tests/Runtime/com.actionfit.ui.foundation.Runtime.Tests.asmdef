@@ -1,0 +1,21 @@
+{
+  "name": "com.actionfit.ui.foundation.Runtime.Tests",
+  "rootNamespace": "ActionFit.UIFoundation.Runtime.Tests",
+  "references": [
+    "com.actionfit.ui.foundation"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

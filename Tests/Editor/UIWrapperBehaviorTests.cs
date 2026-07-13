@@ -1,0 +1,130 @@
+using System.Reflection;
+using NUnit.Framework;
+using TMPro;
+using UnityEngine;
+
+namespace ActionFit.UIFoundation.Editor.Tests
+{
+    public class UIWrapperBehaviorTests
+    {
+        [Test]
+        public void ButtonListenersDisableStateSoundAndThemeAreProjectAgnostic()
+        {
+            var gameObject = new GameObject("ButtonContract", typeof(RectTransform), typeof(CanvasRenderer));
+            Texture2D texture = null;
+            Sprite sprite = null;
+            IUIButtonClickSoundPlayer originalSound = UIButtonServices.ClickSoundPlayer;
+            IUIButtonTheme originalTheme = UIButtonServices.Theme;
+            try
+            {
+                var button = gameObject.AddComponent<UI_Button>();
+                var sound = new CountingSoundPlayer();
+                texture = new Texture2D(2, 2);
+                sprite = Sprite.Create(texture, new Rect(0f, 0f, 2f, 2f), new Vector2(0.5f, 0.5f));
+                UIButtonServices.ClickSoundPlayer = sound;
+                UIButtonServices.Theme = new FixedTheme(sprite);
+
+                MethodInfo registerSound = typeof(UI_Button).GetMethod(
+                    "RegisterClickSound",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(registerSound, Is.Not.Null);
+                registerSound.Invoke(button, null);
+
+                int callbackCount = 0;
+                button.AddListener(() => callbackCount++);
+                button.Button.onClick.Invoke();
+                Assert.That(callbackCount, Is.EqualTo(1));
+                Assert.That(sound.Count, Is.EqualTo(1));
+
+                button.SetDisable();
+                Assert.That(button.IsDisabled, Is.True);
+                Assert.That(button.Button.interactable, Is.False);
+                button.SetEnable();
+                Assert.That(button.IsDisabled, Is.False);
+                Assert.That(button.Button.interactable, Is.True);
+
+                button.SetButtonSprite(UI_Button.ButtonSprite.Green);
+                Assert.That(button.Sprite, Is.SameAs(sprite));
+            }
+            finally
+            {
+                UIButtonServices.ClickSoundPlayer = originalSound;
+                UIButtonServices.Theme = originalTheme;
+                Object.DestroyImmediate(gameObject);
+                if (sprite != null) Object.DestroyImmediate(sprite);
+                if (texture != null) Object.DestroyImmediate(texture);
+            }
+        }
+
+        [Test]
+        public void ImageTextScrollAndMaskExposeStableWrapperBehavior()
+        {
+            var imageObject = new GameObject("ImageContract", typeof(RectTransform), typeof(CanvasRenderer));
+            var textObject = new GameObject("TextContract", typeof(RectTransform), typeof(CanvasRenderer));
+            var scrollObject = new GameObject("ScrollContract", typeof(RectTransform));
+            var viewportObject = new GameObject("Viewport", typeof(RectTransform), typeof(CanvasRenderer));
+            var contentObject = new GameObject("Content", typeof(RectTransform));
+            var maskObject = new GameObject("MaskContract", typeof(RectTransform));
+            try
+            {
+                UI_Image image = imageObject.AddComponent<UI_Image>();
+                image.Color = new Color(0.2f, 0.4f, 0.6f, 1f);
+                image.Alpha = 0.3f;
+                Assert.That(image.Color.a, Is.EqualTo(0.3f).Within(0.0001f));
+
+                textObject.AddComponent<TextMeshProUGUI>().font = null;
+                UI_Text text = textObject.AddComponent<UI_Text>();
+                text.Text = "Foundation";
+                text.SetSize(24).SetColor(Color.cyan);
+                Assert.That(text.Text, Is.EqualTo("Foundation"));
+                Assert.That(text.TMP.fontSize, Is.EqualTo(24f));
+                Assert.That(text.Color, Is.EqualTo(Color.cyan));
+
+                UI_Scroll scroll = scrollObject.AddComponent<UI_Scroll>();
+                viewportObject.transform.SetParent(scrollObject.transform, false);
+                contentObject.transform.SetParent(viewportObject.transform, false);
+                UI_Image viewport = viewportObject.AddComponent<UI_Image>();
+                UI_Rect content = contentObject.AddComponent<UI_Rect>();
+                viewport.RectTransform.sizeDelta = new Vector2(100f, 100f);
+                content.RectTransform.sizeDelta = new Vector2(100f, 300f);
+                scroll.refs = new UI_Scroll.Refs { imgViewMask = viewport, rectContent = content };
+                scroll.Viewport = viewport.RectTransform;
+                scroll.Content = content.RectTransform;
+                scroll.VerticalNormalizedPosition = 0.75f;
+                scroll.SnapToBottom();
+                Assert.That(scroll.VerticalNormalizedPosition, Is.EqualTo(0f).Within(0.0001f));
+
+                UI_Mask2D mask = maskObject.AddComponent<UI_Mask2D>();
+                mask.RectTransform.sizeDelta = new Vector2(10f, 10f);
+                // The project's DOTWEEN define changes AnimHeight's return type to DG.Tweening.Tween.
+                // Invoke by reflection so this package test remains independent of optional DOTween.
+                MethodInfo animHeight = typeof(UI_MaskBase).GetMethod(
+                    "AnimHeight",
+                    BindingFlags.Instance | BindingFlags.Public);
+                Assert.That(animHeight, Is.Not.Null);
+                animHeight.Invoke(mask, new object[] { 25f, 0f, null });
+                Assert.That(mask.RectTransform.sizeDelta.y, Is.EqualTo(25f).Within(0.0001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(imageObject);
+                Object.DestroyImmediate(textObject);
+                Object.DestroyImmediate(scrollObject);
+                Object.DestroyImmediate(maskObject);
+            }
+        }
+
+        private sealed class CountingSoundPlayer : IUIButtonClickSoundPlayer
+        {
+            public int Count { get; private set; }
+            public void PlayClickSound() => Count++;
+        }
+
+        private sealed class FixedTheme : IUIButtonTheme
+        {
+            private readonly Sprite _sprite;
+            public FixedTheme(Sprite sprite) => _sprite = sprite;
+            public Sprite GetButtonSprite(UI_Button.ButtonSprite preset) => _sprite;
+        }
+    }
+}
