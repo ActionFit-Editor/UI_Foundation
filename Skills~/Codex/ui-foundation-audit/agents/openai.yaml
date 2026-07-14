@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audit UI Foundation"
+  short_description: "Audit GUID, serialization, and service contracts"
+  default_prompt: "Use $ui-foundation-audit to audit UI Foundation compatibility and project boundaries without changing assets or settings."

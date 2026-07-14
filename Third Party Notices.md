@@ -1,6 +1,6 @@
 # Third Party Notices
 
-이 문서는 UI Foundation 1.0.0의 구현에 개념적으로 참고된 외부 자료와 선택적 외부 연동 범위를 기록합니다.
+이 문서는 UI Foundation 1.0.1의 구현에 개념적으로 참고된 외부 자료와 선택적 외부 연동 범위를 기록합니다.
 
 ## SlicedFilledImage concept
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Foundation Help"
+  short_description: "Explain UI compatibility and service boundaries"
+  default_prompt: "Use $ui-foundation-help to explain UI Foundation skills, compatibility contracts, menus, tests, and safety boundaries."

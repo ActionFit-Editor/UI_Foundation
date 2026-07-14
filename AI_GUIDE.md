@@ -1,12 +1,12 @@
 # AI Guide - UI Foundation
 
-This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 1.0.0 without the source project's `Docs/AI`.
+This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 1.0.1 without the source project's `Docs/AI`.
 
 ## Package Identity
 
 - Package ID: `com.actionfit.ui.foundation`
 - Display name: `UI Foundation`
-- Current package version at generation time: `1.0.0`
+- Current package version at generation time: `1.0.1`
 - Minimum Unity: `6000.2`
 - Public repository: `https://github.com/ActionFit-Editor/UI_Foundation.git`
 - Human guide: `Packages/com.actionfit.ui.foundation/README.md`
@@ -20,6 +20,13 @@ Requested router entry:
 
 Use `package.json` as the source of truth for the package ID, version, Unity version, and hard dependencies. `Editor/PackageInfo/ActionFitPackageInfo_SO.asset` is the ActionFit catalog source for repository visibility, owner, status, description, and release notes.
 
+## Agent Skills
+
+- `Skills~/manifest.json` registers schema v2 `ui-foundation-help` and `ui-foundation-audit` for Codex and Claude with read-only access.
+- Help reads generated `PACKAGE_SKILLS.md` before explaining global wrappers, GUID and serialization compatibility, project services, optional animation, menus, tests, and safety boundaries.
+- Audit inspects asmdefs, `.meta` GUIDs, serialized-field and enum contracts, identity tests, and project service adapters without invoking Unity, running migration, saving or reserializing assets, changing symbols, or editing files. It compares Git status before and after inspection.
+- Neither skill creates settings or providers, changes runtime behavior, publishes, tags, or updates the catalog.
+
 ## Read This Guide When
 
 - Change files under `Packages/com.actionfit.ui.foundation/`.
@@ -28,7 +35,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
 - Handle DOTween symbol configuration, provider adapters, or shader stripping.
 - Prepare package metadata or a release.
 
-## Actual 1.0.0 Layout
+## Actual 1.0.1 Layout
 
 - `Runtime/com.actionfit.ui.foundation.asmdef`
   - assembly name: `com.actionfit.ui.foundation`
@@ -59,7 +66,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
   - `autoReferenced: false`
   - `UNITY_INCLUDE_TESTS` constraint and `TestAssemblies` optional reference
 
-Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 1.0.0.
+Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 1.0.1.
 
 ## Hard Dependencies
 
@@ -189,7 +196,7 @@ Do not silently replace the shader name or keyword/property IDs. Such a change n
 - `Tools/Package/UI Foundation/README`: opens the packaged README.
 - `Tools/Package/UI Foundation/Migrate Component Refs`: performs the broad serialized-reference migration described above.
 
-Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 1.0.0.
+Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 1.0.1.
 
 ## Test and Validation Gate
 
@@ -218,7 +225,7 @@ Keep future tests in separate test asmdefs and test-only dependencies out of the
 - Keep `README.md` human-focused and this guide architecture/constraint-focused.
 - Update both documents when setup, public API, dependency, compatibility or validation behavior changes.
 - Preserve `Third Party Notices.md` and its `.meta` in releases.
-- Treat published Git tags as immutable. If `1.0.0` already exists remotely, prepare the next unused patch version instead of retagging changed content.
+- Treat published Git tags as immutable. Check the remote before every release and prepare the next unused patch version instead of retagging changed content.
 - Publishing is manual through ActionFit Custom Package Manager.
 - `ActionFitPackageInfo_SO.ReleaseNote` is Korean, contains one version only, and should not embed a duplicate version heading.
 - Register this guide in `Packages/com.actionfit.custompackagemanager/PACKAGE_AI_GUIDE_ROUTER.md` when that router exists in a consuming project.
