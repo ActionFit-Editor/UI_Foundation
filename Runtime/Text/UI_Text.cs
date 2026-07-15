@@ -57,26 +57,29 @@ public partial class UI_Text : MonoBehaviour
     // 런타임: 활성화 시 머티리얼 적용 (Material partial)
     private void OnEnable()
     {
-        if (!Application.isPlaying) return; // 에디터(비플레이)는 OnValidate 프리뷰가 담당
+        if (!Application.isPlaying) return; // 에디터(비플레이)는 Editor preview coordinator가 담당
         EnsureInit();
         AcquireOutline();
         ApplyLocalization(); // Localize partial
     }
 
-    // 런타임: 비활성화 시 반납(refcount 감소) + 원본 복원 (Material partial)
+    // 런타임: 풀 반납. 에디터: 임시 프리뷰 머티리얼 정리 + 원본 복원.
     private void OnDisable()
     {
-        if (!Application.isPlaying) return;
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            RestoreOutlineEditorPreview();
+            return;
+        }
+#endif
         ReleaseOutline();
     }
 
 #if UNITY_EDITOR
-    // 인스펙터 값 변경/로드 시 미리보기 갱신 (에디터 비플레이 전용, Material partial)
-    private void OnValidate()
+    private void OnDestroy()
     {
-        if (Application.isPlaying) return; // 런타임은 OnEnable/OnDisable이 담당
-        if (_txt == null && !TryGetComponent(out _txt)) return;
-        ApplyOutlineEditorPreview();
+        if (!Application.isPlaying) RestoreOutlineEditorPreview();
     }
 #endif
 

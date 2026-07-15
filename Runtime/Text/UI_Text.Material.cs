@@ -61,7 +61,7 @@ public partial class UI_Text
         EnsureInit();
         if (_txt == null) return;
 #if UNITY_EDITOR
-        if (!Application.isPlaying) { ApplyOutlineEditorPreview(); return; }
+        if (!Application.isPlaying) { TryApplyOutlineEditorPreview(); return; }
 #endif
         AcquireOutline();
     }
@@ -118,18 +118,27 @@ public partial class UI_Text
     }
 
 #if UNITY_EDITOR
+    internal bool HasOutlineEditorPreview => _editPreviewMaterial != null;
+    internal Material OutlineEditorPreviewMaterial => _editPreviewMaterial;
+
     // ── 에디터(비플레이) 프리뷰: 로컬 인스턴스로 미리보기 (풀 미사용 — 에디터 머티리얼 오염 방지) ──
-    private void ApplyOutlineEditorPreview()
+    internal bool TryApplyOutlineEditorPreview()
     {
+        if (Application.isPlaying) return true;
+        if (_txt == null && !TryGetComponent(out _txt)) return false;
+
         if (!AnySetting)
         {
-            if (_editPreviewMaterial != null && _baseMaterial != null && _txt.fontSharedMaterial == _editPreviewMaterial)
-                _txt.fontSharedMaterial = _baseMaterial;
-            return;
+            RestoreOutlineEditorPreview();
+            return true;
         }
 
         Material baseMat = (_txt.fontSharedMaterial == _editPreviewMaterial && _baseMaterial != null) ? _baseMaterial : _txt.fontSharedMaterial;
-        if (baseMat == null) return;
+        if (baseMat == null) return false;
+
+        if (_editPreviewMaterial != null && _baseMaterial != baseMat)
+            RestoreOutlineEditorPreview();
+
         _baseMaterial = baseMat;
 
         if (_editPreviewMaterial == null)
@@ -141,6 +150,24 @@ public partial class UI_Text
 
         OutlineMaterialCache.Configure(_editPreviewMaterial, BuildConfig(_baseMaterial));
         _txt.fontSharedMaterial = _editPreviewMaterial;
+        return true;
+    }
+
+    internal void RestoreOutlineEditorPreview()
+    {
+        if (_editPreviewMaterial == null)
+        {
+            if (!_hasAcquired) _baseMaterial = null;
+            return;
+        }
+
+        Material preview = _editPreviewMaterial;
+        if (_txt != null && _baseMaterial != null && _txt.fontSharedMaterial == preview)
+            _txt.fontSharedMaterial = _baseMaterial;
+
+        _editPreviewMaterial = null;
+        if (!_hasAcquired) _baseMaterial = null;
+        Object.DestroyImmediate(preview);
     }
 #endif
 }

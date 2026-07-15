@@ -1,12 +1,12 @@
 # AI Guide - UI Foundation
 
-This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 1.0.1 without the source project's `Docs/AI`.
+This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 1.0.2 without the source project's `Docs/AI`.
 
 ## Package Identity
 
 - Package ID: `com.actionfit.ui.foundation`
 - Display name: `UI Foundation`
-- Current package version at generation time: `1.0.1`
+- Current package version at generation time: `1.0.2`
 - Minimum Unity: `6000.2`
 - Public repository: `https://github.com/ActionFit-Editor/UI_Foundation.git`
 - Human guide: `Packages/com.actionfit.ui.foundation/README.md`
@@ -35,7 +35,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
 - Handle DOTween symbol configuration, provider adapters, or shader stripping.
 - Prepare package metadata or a release.
 
-## Actual 1.0.1 Layout
+## Actual 1.0.2 Layout
 
 - `Runtime/com.actionfit.ui.foundation.asmdef`
   - assembly name: `com.actionfit.ui.foundation`
@@ -46,6 +46,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
   - Editor only
   - references Runtime, `UnityEngine.UI`, `UnityEditor.UI`, `Unity.TextMeshPro`
 - `Runtime/`
+  - `AssemblyInfo.cs` grants editor and editor-test assemblies internal access to editor-preview boundaries without adding a runtime-to-Editor dependency
   - global wrapper types: `UI_Rect`, `UI_Image`, `UI_ImageSlice`, `UI_Input`, `UI_InputBtn`, `UI_Scroll`
   - text/localization: `UI_Text`, `ILocaleRefreshable`, `UILocalizationRefreshHub`
   - button/provider: `UI_Button`, `UIButtonPressEffect`, `IUIButtonClickSoundPlayer`, `IUIButtonTheme`, `UIButtonServices`
@@ -54,6 +55,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
   - utilities: `UIEase`, `UIEaseUtility`, `UIAnimationUtility`, `OutlineMaterialCache`, inspector attributes
 - `Editor/Scripts/`
   - custom inspectors/drawers
+  - `UI_TextEditorPreviewCoordinator` owns delayed, event-driven Face/Outline/Underlay preview refresh and cleanup
   - `UIFoundationPackageMenu`
   - `UIComponentRefsMigrator`
 - `Tests/Editor/com.actionfit.ui.foundation.Editor.Tests.asmdef`
@@ -61,12 +63,13 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
   - references Runtime, Editor and `UnityEngine.UI`
   - `autoReferenced: false`
   - `UNITY_INCLUDE_TESTS` constraint and `TestAssemblies` optional reference
+  - `UI_TextEditorPreviewTests` covers request coalescing, active and inactive targets, Prefab Mode reopen, Undo/Redo, cleanup, non-serialization, and dirty-state preservation
 - `Tests/Runtime/com.actionfit.ui.foundation.Runtime.Tests.asmdef`
   - platform-neutral runtime contract tests
   - `autoReferenced: false`
   - `UNITY_INCLUDE_TESTS` constraint and `TestAssemblies` optional reference
 
-Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 1.0.1.
+Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 1.0.2.
 
 ## Hard Dependencies
 
@@ -177,6 +180,16 @@ The custom inspector is `Editor/Scripts/Image_SliceEditor.cs`. `ImageSliceMeshTe
 
 The sliced+filled concept was informed by yasirkula's `SlicedFilledImage` gist. Keep `Third Party Notices.md` with the package and update it if provenance or implementation scope changes. Do not claim this implementation is a verbatim copy without source evidence.
 
+## `UI_Text` Editor Preview Lifecycle
+
+`UI_Text` stores Face, Outline, and Underlay settings but uses a local `HideFlags.DontSave` Material for non-Play-Mode preview. The preview Material is not a prefab or scene asset and must never be serialized into TMP `m_sharedMaterial` or `m_fontMaterial` fields.
+
+`UI_TextEditorPreviewCoordinator` lives in the Editor assembly and owns event subscription, delayed scheduling, target filtering, request coalescing, bounded initialization retry, and cleanup. It refreshes after editor initialization, scene open, Prefab Stage open, Inspector material-property changes, Undo/Redo, and Edit Mode re-entry. It restores previews before assembly reload, Prefab Stage close, and Play Mode entry.
+
+The Runtime assembly exposes only internal editor-preview apply/restore boundaries through `InternalsVisibleTo`; it does not reference `UnityEditor`, rename serialized fields, or change the Player-facing runtime API. `OnValidate()` must not create or assign Materials. Prefab Mode scans are limited to the current `prefabContentsRoot`, including inactive descendants. Main-stage scans include only loaded, non-persistent scene objects. There is no per-frame global scan and no `[ExecuteAlways]` component.
+
+Preview refresh must not mark a prefab or scene dirty, clear an existing dirty state, save an asset, or reserialize YAML. Closing a stage, disabling or destroying a component, reloading assemblies, or entering Play Mode must restore the original `fontSharedMaterial` before destroying the preview Material. Keep this editor lifecycle separate from Player `OutlineMaterialCache.Acquire` and `Release` ownership.
+
 ## `OutlineMaterialCache` and Shader Stripping
 
 `OutlineMaterialCache` locates this shader by name:
@@ -196,7 +209,7 @@ Do not silently replace the shader name or keyword/property IDs. Such a change n
 - `Tools/Package/UI Foundation/README`: opens the packaged README.
 - `Tools/Package/UI Foundation/Migrate Component Refs`: performs the broad serialized-reference migration described above.
 
-Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 1.0.1.
+Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 1.0.2.
 
 ## Test and Validation Gate
 
@@ -206,6 +219,7 @@ Run `com.actionfit.ui.foundation.Runtime.Tests` and `com.actionfit.ui.foundation
 - `UIEaseCompatibilityTests`: stable enum names/numeric slots, finite endpoints and linear fallbacks
 - `ImageSliceMeshTests`: four directions, `fillCenter`, tiny fill/zero rect and oversized-border geometry
 - `UIRuntimeContractTests` and `UIWrapperBehaviorTests`: runtime assembly identity and baseline Image/Text/Button/Scroll/Mask behavior
+- `UI_TextEditorPreviewTests`: delayed request coalescing, active/inactive targets, Prefab Stage reopen, Undo/Redo, preview cleanup, YAML non-serialization, and unchanged scene/prefab dirty state
 
 Do not report these tests as passed when only script compilation was checked. They also do not replace the following integration/manual gates:
 
@@ -217,6 +231,8 @@ Do not report these tests as passed when only script compilation was checked. Th
 6. Localization refresh after locale changes.
 7. `UIButtonServices` with providers absent and registered.
 8. Target Player verification for TMP outline/underlay shader retention.
+
+Editor-preview tests do not authorize saving representative consumer prefabs or scenes. Compare Git and YAML state before and after manual visual checks and preserve unrelated dirty assets.
 
 Keep future tests in separate test asmdefs and test-only dependencies out of the Runtime assembly. When public/serialized identity, mesh behavior or `UIEase` changes intentionally, update the corresponding fixture in the same versioned change rather than weakening it.
 

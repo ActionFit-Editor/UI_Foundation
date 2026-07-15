@@ -48,6 +48,8 @@ public class UI_TextEditor : Editor
         EditorGUILayout.PropertyField(_isResizeText);
         if (_isResizeText.boolValue) Indented(_resizePadding);
 
+        EditorGUI.BeginChangeCheck();
+
         // Face — ON일 때만 색/dilate 표시
         EditorGUILayout.PropertyField(_isSettingFace);
         if (_isSettingFace.boolValue)
@@ -75,7 +77,16 @@ public class UI_TextEditor : Editor
             Indented(_underlaySoftness);
         }
 
-        serializedObject.ApplyModifiedProperties();
+        bool previewChanged = EditorGUI.EndChangeCheck();
+        bool applied = serializedObject.ApplyModifiedProperties();
+        if (previewChanged && applied)
+        {
+            foreach (UnityEngine.Object currentTarget in targets)
+            {
+                if (currentTarget is UI_Text text)
+                    UI_TextEditorPreviewCoordinator.RequestRefresh(text);
+            }
+        }
     }
 
     private static void Indented(SerializedProperty prop)

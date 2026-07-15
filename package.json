@@ -1,6 +1,6 @@
 {
   "name": "com.actionfit.ui.foundation",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "displayName": "UI Foundation",
   "description": "UI_Text, UI_Button 등 ActionFit 공용 UGUI wrapper와 직렬화 호환 계약을 제공하는 기반 패키지.",
   "unity": "6000.2",
