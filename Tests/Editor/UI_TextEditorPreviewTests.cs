@@ -1,9 +1,11 @@
+using System.Collections;
 using System.IO;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.TestTools;
 using UnityEngine.SceneManagement;
 
 namespace ActionFit.UIFoundation.Editor.Tests
@@ -15,6 +17,11 @@ namespace ActionFit.UIFoundation.Editor.Tests
         private const string TempShaderPath = TempFolder + "/Preview.shader";
         private const string TempMaterialPath = TempFolder + "/PreviewBase.mat";
         private const string TempPrefabPath = TempFolder + "/PreviewText.prefab";
+        private const string TempSpritePath = TempFolder + "/PreviewSprite.png";
+        private const string TempSpriteAssetPath = TempFolder + "/OriginalSpriteAsset.asset";
+        private const string TempSpriteMaterialPath = TempFolder + "/OriginalSpriteMaterial.mat";
+        private const string RuntimeSpriteTestShaderPath =
+            "Packages/com.actionfit.ui.foundation/Tests/Editor/RuntimeSpriteAssetTest.shader";
         private const string TestShaderSource = @"Shader ""TextMeshPro/Mobile/Distance Field Shadow Outline""
 {
     Properties
@@ -156,6 +163,203 @@ namespace ActionFit.UIFoundation.Editor.Tests
             Assert.That(text.OutlineEditorPreviewMaterial.GetFloat("_OutlineWidth"), Is.EqualTo(0.2f).Within(0.0001f));
         }
 
+        [Test]
+        public void SpritePreviewRestoresOriginalAssetOnAssemblyReloadWithoutDirtyingScene()
+        {
+            Scene scene = EditorSceneManager.NewPreviewScene();
+            Sprite sprite = null;
+            TMP_SpriteAsset originalAsset = null;
+            Material spriteMaterial = null;
+            GameObject root = null;
+            try
+            {
+                sprite = CreateSpriteAsset();
+                originalAsset = ScriptableObject.CreateInstance<TMP_SpriteAsset>();
+                spriteMaterial = CreateSpriteMaterial();
+                originalAsset.material = spriteMaterial;
+                root = new GameObject("SpritePreviewRoot");
+                SceneManager.MoveGameObjectToScene(root, scene);
+                UI_Text text = CreateSpriteText("SpritePreview", root.transform, originalAsset, sprite);
+                bool dirtyBeforePreview = scene.isDirty;
+
+                UI_TextEditorPreviewCoordinator.RequestRefresh(text);
+                UI_TextEditorPreviewCoordinator.ProcessPendingForTests();
+
+                Assert.That(text.HasSpriteEditorPreview, Is.True);
+                TMP_SpriteAsset previewAsset = text.SpriteEditorPreviewAsset;
+                Assert.That(previewAsset, Is.Not.Null);
+                Assert.That(text.TMP.spriteAsset, Is.SameAs(previewAsset));
+                Assert.That(previewAsset.spriteGlyphTable[0].sprite, Is.SameAs(sprite));
+                Assert.That(previewAsset.GetSpriteIndexFromName(sprite.name), Is.Zero);
+                Assert.That((previewAsset.hideFlags & HideFlags.DontSave) != 0, Is.True);
+                Assert.That((previewAsset.material.hideFlags & HideFlags.DontSave) != 0, Is.True);
+                Assert.That(scene.isDirty, Is.EqualTo(dirtyBeforePreview));
+
+                UI_TextEditorPreviewCoordinator.NotifyBeforeAssemblyReloadForTests();
+
+                Assert.That(text.HasSpriteEditorPreview, Is.False);
+                Assert.That(text.TMP.spriteAsset, Is.SameAs(originalAsset));
+                Assert.That(previewAsset == null, Is.True);
+                Assert.That(scene.isDirty, Is.EqualTo(dirtyBeforePreview));
+            }
+            finally
+            {
+                if (root != null) Object.DestroyImmediate(root);
+                if (originalAsset != null) Object.DestroyImmediate(originalAsset);
+                if (spriteMaterial != null) Object.DestroyImmediate(spriteMaterial);
+                EditorSceneManager.ClosePreviewScene(scene);
+            }
+        }
+
+        [Test]
+        public void SpritePreviewRestoresOriginalAssetBeforeEnteringPlayMode()
+        {
+            Scene scene = EditorSceneManager.NewPreviewScene();
+            Sprite sprite = null;
+            TMP_SpriteAsset originalAsset = null;
+            Material spriteMaterial = null;
+            GameObject root = null;
+            try
+            {
+                sprite = CreateSpriteAsset();
+                originalAsset = ScriptableObject.CreateInstance<TMP_SpriteAsset>();
+                spriteMaterial = CreateSpriteMaterial();
+                originalAsset.material = spriteMaterial;
+                root = new GameObject("PlayModeCleanupRoot");
+                SceneManager.MoveGameObjectToScene(root, scene);
+                UI_Text text = CreateSpriteText("PlayModeCleanup", root.transform, originalAsset, sprite);
+                UI_TextEditorPreviewCoordinator.RequestRefresh(text);
+                UI_TextEditorPreviewCoordinator.ProcessPendingForTests();
+                TMP_SpriteAsset previewAsset = text.SpriteEditorPreviewAsset;
+
+                UI_TextEditorPreviewCoordinator.NotifyExitingEditModeForTests();
+
+                Assert.That(text.HasSpriteEditorPreview, Is.False);
+                Assert.That(text.TMP.spriteAsset, Is.SameAs(originalAsset));
+                Assert.That(previewAsset == null, Is.True);
+            }
+            finally
+            {
+                if (root != null) Object.DestroyImmediate(root);
+                if (originalAsset != null) Object.DestroyImmediate(originalAsset);
+                if (spriteMaterial != null) Object.DestroyImmediate(spriteMaterial);
+                EditorSceneManager.ClosePreviewScene(scene);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator SpritePreviewCleansUpWhenComponentIsDisabledOrDestroyed()
+        {
+            EnsureTempFolder();
+            Sprite sprite = CreateSpriteAsset();
+            var originalAsset = ScriptableObject.CreateInstance<TMP_SpriteAsset>();
+            Material spriteMaterial = CreateSpriteMaterial();
+            AssetDatabase.CreateAsset(spriteMaterial, TempSpriteMaterialPath);
+            originalAsset.material = spriteMaterial;
+            AssetDatabase.CreateAsset(originalAsset, TempSpriteAssetPath);
+
+            var source = new GameObject("ComponentCleanupRoot");
+            CreateSpriteText("Disabled", source.transform, originalAsset, sprite);
+            CreateSpriteText("Destroyed", source.transform, originalAsset, sprite);
+            PrefabUtility.SaveAsPrefabAsset(source, TempPrefabPath);
+            Object.DestroyImmediate(source);
+            AssetDatabase.SaveAssets();
+
+            PrefabStage stage = PrefabStageUtility.OpenPrefab(TempPrefabPath);
+            Assert.That(stage, Is.Not.Null);
+            UI_Text[] texts = stage.prefabContentsRoot.GetComponentsInChildren<UI_Text>(true);
+            UI_Text disabledText = System.Array.Find(texts, text => text.name == "Disabled");
+            UI_Text destroyedText = System.Array.Find(texts, text => text.name == "Destroyed");
+            UI_TextEditorPreviewCoordinator.ProcessPendingForTests();
+            TMP_Text disabledTmp = disabledText.TMP;
+            TMP_SpriteAsset disabledPreview = disabledText.SpriteEditorPreviewAsset;
+
+            var disabledSerialized = new SerializedObject(disabledText);
+            disabledSerialized.FindProperty("m_Enabled").boolValue = false;
+            disabledSerialized.ApplyModifiedPropertiesWithoutUndo();
+            yield return null;
+
+            Assert.That(disabledTmp.spriteAsset, Is.SameAs(originalAsset));
+            Assert.That(disabledPreview == null, Is.True);
+
+            TMP_Text destroyedTmp = destroyedText.TMP;
+            TMP_SpriteAsset destroyedPreview = destroyedText.SpriteEditorPreviewAsset;
+            Object.DestroyImmediate(destroyedText);
+            yield return null;
+
+            Assert.That(destroyedTmp.spriteAsset, Is.SameAs(originalAsset));
+            Assert.That(destroyedPreview == null, Is.True);
+        }
+
+        [Test]
+        public void SpritePreviewRefreshesAfterInspectorAndUndoRedoSettingsChanges()
+        {
+            EnsureTempFolder();
+            Sprite sprite = CreateSpriteAsset();
+            var originalAsset = ScriptableObject.CreateInstance<TMP_SpriteAsset>();
+            Material spriteMaterial = CreateSpriteMaterial();
+            AssetDatabase.CreateAsset(spriteMaterial, TempSpriteMaterialPath);
+            originalAsset.material = spriteMaterial;
+            AssetDatabase.CreateAsset(originalAsset, TempSpriteAssetPath);
+
+            var source = new GameObject("SpriteRefreshRoot");
+            CreateSpriteText("SpriteRefresh", source.transform, originalAsset, sprite);
+            PrefabUtility.SaveAsPrefabAsset(source, TempPrefabPath);
+            Object.DestroyImmediate(source);
+            AssetDatabase.SaveAssets();
+
+            PrefabStage stage = PrefabStageUtility.OpenPrefab(TempPrefabPath);
+            Assert.That(stage, Is.Not.Null);
+            UI_Text text = stage.prefabContentsRoot.GetComponentInChildren<UI_Text>(true);
+            UI_TextEditorPreviewCoordinator.ProcessPendingForTests();
+            TMP_SpriteAsset firstPreview = text.SpriteEditorPreviewAsset;
+
+            SetSpriteScaleWithoutUndo(text, 1.5f);
+            UI_TextEditorPreviewCoordinator.RequestRefresh(text);
+            UI_TextEditorPreviewCoordinator.ProcessPendingForTests();
+            TMP_SpriteAsset inspectorPreview = text.SpriteEditorPreviewAsset;
+            Assert.That(firstPreview == null, Is.True);
+            Assert.That(inspectorPreview.spriteGlyphTable[0].scale, Is.EqualTo(1.5f));
+
+            SetSpriteScaleWithoutUndo(text, 0.75f);
+            UI_TextEditorPreviewCoordinator.NotifyUndoRedoForTests();
+            UI_TextEditorPreviewCoordinator.ProcessPendingForTests();
+            Assert.That(inspectorPreview == null, Is.True);
+            Assert.That(text.SpriteEditorPreviewAsset.spriteGlyphTable[0].scale, Is.EqualTo(0.75f));
+        }
+
+        [Test]
+        public void SpritePreviewDoesNotSerializeGeneratedAssetIntoPrefabYaml()
+        {
+            EnsureTempFolder();
+            Sprite sprite = CreateSpriteAsset();
+            var originalAsset = ScriptableObject.CreateInstance<TMP_SpriteAsset>();
+            Material spriteMaterial = CreateSpriteMaterial();
+            AssetDatabase.CreateAsset(spriteMaterial, TempSpriteMaterialPath);
+            originalAsset.material = spriteMaterial;
+            AssetDatabase.CreateAsset(originalAsset, TempSpriteAssetPath);
+
+            var source = new GameObject("SpritePreviewPrefabRoot");
+            CreateSpriteText("SpritePreview", source.transform, originalAsset, sprite);
+            PrefabUtility.SaveAsPrefabAsset(source, TempPrefabPath);
+            Object.DestroyImmediate(source);
+            AssetDatabase.SaveAssets();
+
+            string yamlBefore = File.ReadAllText(TempPrefabPath);
+            PrefabStage stage = PrefabStageUtility.OpenPrefab(TempPrefabPath);
+            Assert.That(stage, Is.Not.Null);
+            UI_Text text = stage.prefabContentsRoot.GetComponentInChildren<UI_Text>(true);
+            Assert.That(text, Is.Not.Null);
+
+            UI_TextEditorPreviewCoordinator.ProcessPendingForTests();
+
+            Assert.That(text.HasSpriteEditorPreview, Is.True);
+            Assert.That(text.TMP.spriteAsset, Is.SameAs(text.SpriteEditorPreviewAsset));
+            Assert.That(stage.scene.isDirty, Is.False);
+            StageUtility.GoToMainStage();
+            Assert.That(File.ReadAllText(TempPrefabPath), Is.EqualTo(yamlBefore));
+        }
+
         private static void VerifyOpenedPrefabStage(Material expectedBaseMaterial)
         {
             PrefabStage stage = PrefabStageUtility.OpenPrefab(TempPrefabPath);
@@ -185,10 +389,64 @@ namespace ActionFit.UIFoundation.Editor.Tests
             return text;
         }
 
+        private static UI_Text CreateSpriteText(
+            string name,
+            Transform parent,
+            TMP_SpriteAsset originalAsset,
+            Sprite sprite)
+        {
+            var gameObject = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer));
+            gameObject.transform.SetParent(parent, false);
+            var tmp = gameObject.AddComponent<TextMeshProUGUI>();
+            tmp.font = null;
+            tmp.spriteAsset = originalAsset;
+            var text = gameObject.AddComponent<UI_Text>();
+
+            var serialized = new SerializedObject(text);
+            serialized.FindProperty("isSpriteAsset").boolValue = true;
+            serialized.FindProperty("sprite").objectReferenceValue = sprite;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            text.ResetRuntimeSpriteGlyphSettings();
+            return text;
+        }
+
+        private static Sprite CreateSpriteAsset()
+        {
+            EnsureTempFolder();
+            var texture = new Texture2D(8, 8);
+            byte[] png = texture.EncodeToPNG();
+            Object.DestroyImmediate(texture);
+            File.WriteAllBytes(TempSpritePath, png);
+            AssetDatabase.ImportAsset(TempSpritePath, ImportAssetOptions.ForceSynchronousImport);
+
+            var importer = (TextureImporter)AssetImporter.GetAtPath(TempSpritePath);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.SaveAndReimport();
+            Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(TempSpritePath);
+            Assert.That(sprite, Is.Not.Null);
+            return sprite;
+        }
+
+        private static Material CreateSpriteMaterial()
+        {
+            Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(RuntimeSpriteTestShaderPath);
+            Assert.That(shader, Is.Not.Null);
+            return new Material(shader) { name = "UI Foundation Sprite Preview Test Material" };
+        }
+
         private static void SetFloatWithoutUndo(UI_Text text, string propertyName, float value)
         {
             var serialized = new SerializedObject(text);
             serialized.FindProperty(propertyName).floatValue = value;
+            Assert.That(serialized.ApplyModifiedPropertiesWithoutUndo(), Is.True);
+        }
+
+        private static void SetSpriteScaleWithoutUndo(UI_Text text, float value)
+        {
+            var serialized = new SerializedObject(text);
+            SerializedProperty settings = serialized.FindProperty("spriteGlyphSettings");
+            settings.FindPropertyRelative("scale").floatValue = value;
             Assert.That(serialized.ApplyModifiedPropertiesWithoutUndo(), Is.True);
         }
 

@@ -54,32 +54,45 @@ public partial class UI_Text : MonoBehaviour
 
     private void Awake() => EnsureInit();
 
-    // 런타임: 활성화 시 머티리얼 적용 (Material partial)
+    // 런타임: 활성화 시 Sprite Asset, 머티리얼, Localization 순서로 적용.
     private void OnEnable()
     {
         if (!Application.isPlaying) return; // 에디터(비플레이)는 Editor preview coordinator가 담당
         EnsureInit();
+        AcquireRuntimeSpriteAsset();
         AcquireOutline();
         ApplyLocalization(); // Localize partial
     }
 
-    // 런타임: 풀 반납. 에디터: 임시 프리뷰 머티리얼 정리 + 원본 복원.
+    // 런타임: 풀 반납. 에디터: 모든 임시 프리뷰 정리 + 원본 복원.
     private void OnDisable()
     {
 #if UNITY_EDITOR
         if (!Application.isPlaying)
         {
+            RestoreSpriteEditorPreview();
             RestoreOutlineEditorPreview();
             return;
         }
 #endif
+        ReleaseRuntimeSpriteAsset();
         ReleaseOutline();
     }
 
 #if UNITY_EDITOR
+    // 일반 MonoBehaviour는 Edit Mode에서 enabled 변경만으로 OnDisable이 호출되지 않을 수 있습니다.
+    private void OnValidate()
+    {
+        if (!Application.isPlaying && !enabled) RestoreSpriteEditorPreview();
+    }
+
     private void OnDestroy()
     {
-        if (!Application.isPlaying) RestoreOutlineEditorPreview();
+        if (!Application.isPlaying)
+        {
+            RestoreSpriteEditorPreview();
+            RestoreOutlineEditorPreview();
+        }
     }
 #endif
 

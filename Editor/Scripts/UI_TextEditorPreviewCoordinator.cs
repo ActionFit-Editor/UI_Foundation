@@ -11,8 +11,10 @@ internal static class UI_TextEditorPreviewCoordinator
     private const int MaxInitializationRetries = 3;
 
     private static readonly HashSet<UI_Text> PendingTargets = new();
+    private static readonly HashSet<UI_Text> SpritePreviewTargets = new();
     private static bool _refreshCurrentStage;
     private static bool _drainScheduled;
+    private static bool _previewMonitorRegistered;
     private static int _initializationRetryCount;
 
     static UI_TextEditorPreviewCoordinator()
@@ -21,8 +23,10 @@ internal static class UI_TextEditorPreviewCoordinator
         PrefabStage.prefabStageClosing += OnPrefabStageClosing;
         EditorSceneManager.sceneOpened += OnSceneOpened;
         Undo.undoRedoPerformed += OnUndoRedo;
+        ObjectChangeEvents.changesPublished += OnObjectChanges;
         AssemblyReloadEvents.beforeAssemblyReload += BeforeAssemblyReload;
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        UI_Text.SpriteEditorPreviewChanged += OnSpriteEditorPreviewChanged;
         RequestCurrentStageRefresh();
     }
 
@@ -60,6 +64,11 @@ internal static class UI_TextEditorPreviewCoordinator
 
     internal static void NotifyUndoRedoForTests() => OnUndoRedo();
 
+    internal static void NotifyBeforeAssemblyReloadForTests() => BeforeAssemblyReload();
+
+    internal static void NotifyExitingEditModeForTests() =>
+        OnPlayModeStateChanged(PlayModeStateChange.ExitingEditMode);
+
     private static void ScheduleDrain()
     {
         if (_drainScheduled) return;
@@ -86,7 +95,9 @@ internal static class UI_TextEditorPreviewCoordinator
         foreach (UI_Text text in targets)
         {
             if (!IsCurrentStageTarget(text)) continue;
-            if (!text.TryApplyOutlineEditorPreview()) PendingTargets.Add(text);
+            bool outlineReady = text.TryApplyOutlineEditorPreview();
+            bool spriteReady = text.TryApplySpriteEditorPreview();
+            if (!outlineReady || !spriteReady) PendingTargets.Add(text);
         }
 
         if (PendingTargets.Count > 0 && _initializationRetryCount < MaxInitializationRetries)
@@ -140,12 +151,80 @@ internal static class UI_TextEditorPreviewCoordinator
     {
         if (stage?.prefabContentsRoot == null) return;
         foreach (UI_Text text in stage.prefabContentsRoot.GetComponentsInChildren<UI_Text>(true))
+        {
+            text.RestoreSpriteEditorPreview();
             text.RestoreOutlineEditorPreview();
+        }
     }
 
     private static void OnSceneOpened(Scene _, OpenSceneMode __) => RequestCurrentStageRefresh();
 
     private static void OnUndoRedo() => RequestCurrentStageRefresh();
+
+    private static void OnSpriteEditorPreviewChanged(UI_Text text)
+    {
+        if (ReferenceEquals(text, null)) return;
+        if (text.HasSpriteEditorPreview)
+        {
+            SpritePreviewTargets.Add(text);
+            RegisterPreviewMonitor();
+        }
+        else
+        {
+            SpritePreviewTargets.Remove(text);
+            UnregisterPreviewMonitorWhenIdle();
+        }
+    }
+
+    private static void RegisterPreviewMonitor()
+    {
+        if (_previewMonitorRegistered) return;
+        _previewMonitorRegistered = true;
+        EditorApplication.update += MonitorSpritePreviewTargets;
+    }
+
+    private static void MonitorSpritePreviewTargets()
+    {
+        foreach (UI_Text text in new List<UI_Text>(SpritePreviewTargets))
+        {
+            if (text != null && text.enabled) continue;
+            text.RestoreSpriteEditorPreview();
+            if (text != null) text.RestoreOutlineEditorPreview();
+            SpritePreviewTargets.Remove(text);
+        }
+        UnregisterPreviewMonitorWhenIdle();
+    }
+
+    private static void UnregisterPreviewMonitorWhenIdle()
+    {
+        if (!_previewMonitorRegistered || SpritePreviewTargets.Count > 0) return;
+        EditorApplication.update -= MonitorSpritePreviewTargets;
+        _previewMonitorRegistered = false;
+    }
+
+    private static void OnObjectChanges(ref ObjectChangeEventStream stream)
+    {
+        if (Application.isPlaying) return;
+        for (int index = 0; index < stream.length; index++)
+        {
+            if (stream.GetEventType(index) != ObjectChangeKind.ChangeGameObjectOrComponentProperties) continue;
+            stream.GetChangeGameObjectOrComponentPropertiesEvent(
+                index,
+                out ChangeGameObjectOrComponentPropertiesEventArgs change);
+            if (EditorUtility.InstanceIDToObject(change.instanceId) is not UI_Text text) continue;
+
+            if (!text.enabled)
+            {
+                PendingTargets.Remove(text);
+                text.RestoreSpriteEditorPreview();
+                text.RestoreOutlineEditorPreview();
+            }
+            else
+            {
+                RequestRefresh(text);
+            }
+        }
+    }
 
     private static void BeforeAssemblyReload()
     {
@@ -168,9 +247,19 @@ internal static class UI_TextEditorPreviewCoordinator
 
     private static void RestoreAllLoadedPreviews()
     {
+        foreach (UI_Text text in new List<UI_Text>(SpritePreviewTargets))
+        {
+            text.RestoreSpriteEditorPreview();
+            if (text != null) text.RestoreOutlineEditorPreview();
+        }
+        SpritePreviewTargets.Clear();
+        UnregisterPreviewMonitorWhenIdle();
+
         foreach (UI_Text text in Resources.FindObjectsOfTypeAll<UI_Text>())
         {
-            if (IsLoadedSceneTarget(text)) text.RestoreOutlineEditorPreview();
+            if (!IsLoadedSceneTarget(text)) continue;
+            text.RestoreSpriteEditorPreview();
+            text.RestoreOutlineEditorPreview();
         }
     }
 

@@ -21,19 +21,11 @@ MonoBehaviour:
   _description: "UI_Text, UI_Button \uB4F1 ActionFit \uACF5\uC6A9 UGUI wrapper\uC640
     \uC9C1\uB82C\uD654 \uD638\uD658 \uACC4\uC57D\uC744 \uC81C\uACF5\uD558\uB294 \uAE30\uBC18
     \uD328\uD0A4\uC9C0."
-  _releaseNote: "- `UI_Text.Sprite.cs` partial\uC744 \uCD94\uAC00\uD574 TMP Sprite
-    Asset \uC9C0\uC815\uACFC \uC774\uB984\xB7\uC778\uB371\uC2A4 \uAE30\uBC18 \uC778\uB77C\uC778
-    sprite \uD0DC\uADF8 \uC0DD\uC131\uC744 \uC9C0\uC6D0\uD569\uB2C8\uB2E4.\n- `SetTextWithSprite`\uB294
-    \uC55E\uB4A4 \uD14D\uC2A4\uD2B8 \uC0AC\uC774\uC5D0 sprite\uB97C \uBC30\uCE58\uD558\uACE0
-    TMP Rich Text\uB97C \uD65C\uC131\uD654\uD569\uB2C8\uB2E4.\n- `ILocaleRefreshable.RefreshLocalization()`\uACFC
-    `UILocalizationRefreshHub.Register(this)`\uC758 \uC18C\uBE44\uC790 \uC0AC\uC6A9
-    \uACC4\uC57D\uC744 README\uC640 AI guide\uC5D0 \uBA85\uD655\uD788 \uC124\uBA85\uD588\uC2B5\uB2C8\uB2E4.\n-
-    object \uB4F1\uB85D\uC758 \uC911\uBCF5 \uBC29\uC9C0\xB7\uD30C\uAD34 \uAC1D\uCCB4
-    \uC790\uB3D9 \uC815\uB9AC\uC640 `OnRegister(Action)`/`OnUnregister(Action)` \uCF5C\uBC31
-    \uC218\uBA85 \uCC28\uC774\uB97C \uBB38\uC11C\uD654\uD588\uC2B5\uB2C8\uB2E4.\n-
-    `UI_Text.SetLocalizeKey`\uAC00 \uC989\uC2DC \uC801\uC6A9\uACFC hub \uB4F1\uB85D\uC744
-    \uD568\uAED8 \uC218\uD589\uD558\uB294 \uAE30\uC874 \uB3D9\uC791\uC744 owner \uACC4\uC57D\uC73C\uB85C
-    \uAE30\uB85D\uD588\uC2B5\uB2C8\uB2E4.\n- \uAE30\uC874 `UI_Text` \uC9C1\uB82C\uD654
-    \uD544\uB4DC\uC640 MonoScript GUID, prefab\xB7scene\uC740 \uBCC0\uACBD\uD558\uC9C0
-    \uC54A\uC2B5\uB2C8\uB2E4."
+  _releaseNote: "- `UI_Text`\uAC00 \uC9C1\uB82C\uD654\uB41C Single Sprite\uC640 `X/Y/W/H`,
+    `W/H/BX/BY/AD/Scale` \uC124\uC815\uC73C\uB85C \uB7F0\uD0C0\uC784 `TMP_SpriteAsset`\uC744
+    \uC0DD\uC131\uD569\uB2C8\uB2E4.\n- \uB3D9\uC77C Sprite/glyph \uC124\uC815\uC740
+    reference-counted cache\uB97C \uACF5\uC720\uD558\uACE0 \uBE44\uD65C\uC131\uD654
+    \uC2DC \uAE30\uC874 `TMP_Text.spriteAsset`\uC744 \uBCF5\uC6D0\uD569\uB2C8\uB2E4.\n-
+    `HideAndDontSave` Editor preview\uC640 Inspector reset\uC744 \uCD94\uAC00\uD558\uACE0
+    prefab\xB7scene YAML \uBC0F dirty \uC0C1\uD0DC\uB97C \uBCF4\uC874\uD569\uB2C8\uB2E4."
   _dependenciesOverride: 

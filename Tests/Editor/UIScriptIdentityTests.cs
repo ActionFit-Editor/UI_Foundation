@@ -54,6 +54,7 @@ namespace ActionFit.UIFoundation.Editor.Tests
         [TestCase("438438e3264549c8981bfd6869cedc6a", "Packages/com.actionfit.ui.foundation/Runtime/Util/UIEase.cs")]
         [TestCase("a0c8bcabd1ad49108fbaf54e5391d760", "Packages/com.actionfit.ui.foundation/Runtime/Util/UIAnimationUtility.cs")]
         [TestCase("2a0989b0dbb54a5d827eae46c8de4585", "Packages/com.actionfit.ui.foundation/Runtime/Button/UIButtonServices.cs")]
+        [TestCase("220a820aa6484e52b7a0fd96f6909bba", "Packages/com.actionfit.ui.foundation/Runtime/Util/RuntimeSpriteAssetCache.cs")]
         public void NewRuntimeUtilityGuidIsFixed(string guid, string expectedPath)
         {
             Assert.That(AssetDatabase.GUIDToAssetPath(guid), Is.EqualTo(expectedPath));
