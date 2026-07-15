@@ -2,7 +2,7 @@ using TMPro;
 using UnityEngine;
 
 /// <summary>
-/// TMP_Text 래퍼 컴포넌트. 기능별로 partial 분리되어 있다: Material(Face/Outline/Underlay) / Resize.
+/// TMP_Text 래퍼 컴포넌트. 기능별로 partial 분리되어 있다: Material(Face/Outline/Underlay) / Resize / Sprite.
 /// 이 파일(Core)은 TMP_Text 캐시와 Unity 생명주기를 담당하며, 각 기능의 init/apply를 호출만 한다.
 /// 새 기능 추가 시: UI_Text.&lt;Feature&gt;.cs 파일을 만들고, 필요하면 EnsureInit/OnEnable 등에 호출 한 줄만 추가한다.
 /// - Text/Color/TMP 프로퍼티로 직관적인 접근 + Chainable Setter(SetSize/SetColor/SetFont/SetAlignment)

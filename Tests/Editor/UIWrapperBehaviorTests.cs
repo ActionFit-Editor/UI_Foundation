@@ -114,6 +114,32 @@ namespace ActionFit.UIFoundation.Editor.Tests
             }
         }
 
+        [Test]
+        public void TextSupportsNamedInlineSpriteTags()
+        {
+            var textObject = new GameObject("TextSpriteContract", typeof(RectTransform), typeof(CanvasRenderer));
+            TMP_SpriteAsset spriteAsset = null;
+            try
+            {
+                textObject.AddComponent<TextMeshProUGUI>().font = null;
+                UI_Text text = textObject.AddComponent<UI_Text>();
+                spriteAsset = ScriptableObject.CreateInstance<TMP_SpriteAsset>();
+
+                text.SetSpriteAsset(spriteAsset)
+                    .SetTextWithSprite("Reward ", "coin", " 100", true);
+
+                Assert.That(text.SpriteAsset, Is.SameAs(spriteAsset));
+                Assert.That(text.Text, Is.EqualTo("Reward <sprite name=\"coin\" tint=1> 100"));
+                Assert.That(text.TMP.richText, Is.True);
+                Assert.That(UI_Text.BuildSpriteTag(2), Is.EqualTo("<sprite=2>"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(textObject);
+                if (spriteAsset != null) Object.DestroyImmediate(spriteAsset);
+            }
+        }
+
         private sealed class CountingSoundPlayer : IUIButtonClickSoundPlayer
         {
             public int Count { get; private set; }

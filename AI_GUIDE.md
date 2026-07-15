@@ -1,12 +1,12 @@
 # AI Guide - UI Foundation
 
-This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 1.0.2 without the source project's `Docs/AI`.
+This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 1.0.4 without the source project's `Docs/AI`.
 
 ## Package Identity
 
 - Package ID: `com.actionfit.ui.foundation`
 - Display name: `UI Foundation`
-- Current package version at generation time: `1.0.2`
+- Current package version at generation time: `1.0.4`
 - Minimum Unity: `6000.2`
 - Public repository: `https://github.com/ActionFit-Editor/UI_Foundation.git`
 - Human guide: `Packages/com.actionfit.ui.foundation/README.md`
@@ -35,7 +35,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
 - Handle DOTween symbol configuration, provider adapters, or shader stripping.
 - Prepare package metadata or a release.
 
-## Actual 1.0.2 Layout
+## Actual 1.0.4 Layout
 
 - `Runtime/com.actionfit.ui.foundation.asmdef`
   - assembly name: `com.actionfit.ui.foundation`
@@ -48,7 +48,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
 - `Runtime/`
   - `AssemblyInfo.cs` grants editor and editor-test assemblies internal access to editor-preview boundaries without adding a runtime-to-Editor dependency
   - global wrapper types: `UI_Rect`, `UI_Image`, `UI_ImageSlice`, `UI_Input`, `UI_InputBtn`, `UI_Scroll`
-  - text/localization: `UI_Text`, `ILocaleRefreshable`, `UILocalizationRefreshHub`
+  - text/localization: `UI_Text`, inline TMP Sprite Asset tags, `ILocaleRefreshable`, `UILocalizationRefreshHub`
   - button/provider: `UI_Button`, `UIButtonPressEffect`, `IUIButtonClickSoundPlayer`, `IUIButtonTheme`, `UIButtonServices`
   - mask: `UI_MaskBase`, `UI_Mask`, `UI_Mask2D`
   - sliced fill: `Image_Slice`
@@ -69,7 +69,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
   - `autoReferenced: false`
   - `UNITY_INCLUDE_TESTS` constraint and `TestAssemblies` optional reference
 
-Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 1.0.2.
+Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 1.0.4.
 
 ## Hard Dependencies
 
@@ -94,6 +94,16 @@ The package was extracted from project-owned scripts while preserving existing s
 6. Never leave the original global-type source and the package copy installed together. Duplicate definitions will fail compilation even if GUIDs match.
 
 When moving or publishing, include every existing `.meta`, compare GUIDs before/after, import a real consuming project, then inspect prefab/scene YAML and the Unity Console for missing scripts or lost serialized values.
+
+## Localization Refresh Contract
+
+- A consumer that owns locale-dependent text outside `UI_Text` may implement `ILocaleRefreshable.RefreshLocalization()` and register once through `UILocalizationRefreshHub.Register(this)` during its initialization or active lifetime.
+- `Register` prevents duplicate object registration. `RefreshAll()` removes destroyed Unity objects before invoking the remaining targets, so the `ILocaleRefreshable` object route has no explicit unregister API.
+- `RefreshLocalization()` reapplies the current locale's text. A consumer that already reapplies text on every display or frame does not need a separate hub registration.
+- `UILocalizationRefreshHub.OnRegister(Action)` is a separate callback route. Pair it with `OnUnregister(Action)` at the same active lifetime because callback delegates are not removed by destroyed-object cleanup.
+- `UI_Text.SetLocalizeKey(table, entry)` enables localization, applies the value immediately, and registers the component. Do not add a second registration path around it.
+
+These are public owner contracts. A consuming project decides which game-specific string source or presenter needs them; this package does not name or depend on that source.
 
 ## Component Reference Migration
 
@@ -180,6 +190,14 @@ The custom inspector is `Editor/Scripts/Image_SliceEditor.cs`. `ImageSliceMeshTe
 
 The sliced+filled concept was informed by yasirkula's `SlicedFilledImage` gist. Keep `Third Party Notices.md` with the package and update it if provenance or implementation scope changes. Do not claim this implementation is a verbatim copy without source evidence.
 
+## `UI_Text` Inline Sprite Contract
+
+`Runtime/Text/UI_Text.Sprite.cs` is a separate partial with no serialized fields. It exposes the attached TMP component's existing `spriteAsset` through `SpriteAsset` and `SetSpriteAsset`, and it must not duplicate the Sprite Asset reference in `UI_Text` serialization.
+
+`SetTextWithSprite(prefix, spriteName, suffix, tint)` enables TMP Rich Text and routes the final string through the existing `Text` property so resize behavior remains intact. `BuildSpriteTag(string)` produces a name-based tag, while `BuildSpriteTag(int)` is available for index-based callers. Prefer names because Sprite Asset index order can change.
+
+The consuming project owns every `TMP_SpriteAsset`, source texture, atlas, Resources/Addressables decision, and visual glyph metric. Foundation must not bundle game icons, resolve project paths, or introduce automatic asset loading for this feature. Existing localization strings containing TMP `<sprite>` tags continue to pass through unchanged.
+
 ## `UI_Text` Editor Preview Lifecycle
 
 `UI_Text` stores Face, Outline, and Underlay settings but uses a local `HideFlags.DontSave` Material for non-Play-Mode preview. The preview Material is not a prefab or scene asset and must never be serialized into TMP `m_sharedMaterial` or `m_fontMaterial` fields.
@@ -209,7 +227,7 @@ Do not silently replace the shader name or keyword/property IDs. Such a change n
 - `Tools/Package/UI Foundation/README`: opens the packaged README.
 - `Tools/Package/UI Foundation/Migrate Component Refs`: performs the broad serialized-reference migration described above.
 
-Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 1.0.2.
+Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 1.0.4.
 
 ## Test and Validation Gate
 
@@ -218,7 +236,7 @@ Run `com.actionfit.ui.foundation.Runtime.Tests` and `com.actionfit.ui.foundation
 - `UIScriptIdentityTests`: preserved script GUID -> path, type and assembly mappings, plus fixed GUIDs for new runtime utilities
 - `UIEaseCompatibilityTests`: stable enum names/numeric slots, finite endpoints and linear fallbacks
 - `ImageSliceMeshTests`: four directions, `fillCenter`, tiny fill/zero rect and oversized-border geometry
-- `UIRuntimeContractTests` and `UIWrapperBehaviorTests`: runtime assembly identity and baseline Image/Text/Button/Scroll/Mask behavior
+- `UIRuntimeContractTests` and `UIWrapperBehaviorTests`: runtime assembly identity, baseline Image/Text/Button/Scroll/Mask behavior, and inline `UI_Text` sprite tags
 - `UI_TextEditorPreviewTests`: delayed request coalescing, active/inactive targets, Prefab Stage reopen, Undo/Redo, preview cleanup, YAML non-serialization, and unchanged scene/prefab dirty state
 
 Do not report these tests as passed when only script compilation was checked. They also do not replace the following integration/manual gates:
