@@ -6,7 +6,7 @@ This document is shipped with the package so AI assistants in consuming projects
 
 - Package ID: `com.actionfit.ui.foundation`
 - Display name: `UI Foundation`
-- Current package version at generation time: `1.0.5`
+- Current package version at generation time: `1.0.6`
 - Minimum Unity: `6000.2`
 - Public repository: `https://github.com/ActionFit-Editor/UI_Foundation.git`
 - Human guide: `Packages/com.actionfit.ui.foundation/README.md`
