@@ -310,6 +310,11 @@ public static class UI_ButtonLegacyMigrator
         for (int index = 0; index < paths.Length; index++)
         {
             string path = paths[index];
+            if (!IsProjectAssetPath(path))
+            {
+                report.Failures.Add($"{path} :: refusing to save a scene outside Assets/");
+                continue;
+            }
             EditorUtility.DisplayProgressBar(
                 "Legacy UI_Button Migration",
                 $"Scene {index + 1}/{paths.Length}: {path}",
@@ -351,6 +356,11 @@ public static class UI_ButtonLegacyMigrator
         for (int index = 0; index < paths.Length; index++)
         {
             string path = paths[index];
+            if (!IsProjectAssetPath(path))
+            {
+                report.Failures.Add($"{path} :: refusing to save a prefab outside Assets/");
+                continue;
+            }
             EditorUtility.DisplayProgressBar(
                 "Legacy UI_Button Migration",
                 $"Prefab {index + 1}/{paths.Length}: {path}",
@@ -659,11 +669,7 @@ public static class UI_ButtonLegacyMigrator
 
     private static string[] FindPrefabPaths()
     {
-        return FindAssetPaths("t:Prefab", new[]
-        {
-            "Assets",
-            "Packages/com.actionfit.ui.prefabs",
-        });
+        return FindAssetPaths("t:Prefab", new[] { "Assets" });
     }
 
     private static string[] FindScenePaths()
@@ -679,6 +685,12 @@ public static class UI_ButtonLegacyMigrator
             .Distinct(StringComparer.Ordinal)
             .OrderBy(path => path, StringComparer.Ordinal)
             .ToArray();
+    }
+
+    private static bool IsProjectAssetPath(string path)
+    {
+        return !string.IsNullOrEmpty(path)
+               && (path == "Assets" || path.StartsWith("Assets/", StringComparison.Ordinal));
     }
 
     private static string GetHierarchyPath(Transform target)

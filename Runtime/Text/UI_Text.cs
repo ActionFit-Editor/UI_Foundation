@@ -10,8 +10,9 @@ using UnityEngine;
 [RequireComponent(typeof(TMP_Text))]
 public partial class UI_Text : MonoBehaviour
 {
-    private TMP_Text _txt;
+    protected TMP_Text _txt;
     private bool _initialized;
+    private bool _compatibilityInitialized;
 
     #region Properties
 
@@ -55,17 +56,17 @@ public partial class UI_Text : MonoBehaviour
     private void Awake() => EnsureInit();
 
     // 런타임: 활성화 시 Sprite Asset, 머티리얼, Localization 순서로 적용.
-    private void OnEnable()
+    protected virtual void OnEnable()
     {
+        Initialize();
         if (!Application.isPlaying) return; // 에디터(비플레이)는 Editor preview coordinator가 담당
-        EnsureInit();
         AcquireRuntimeSpriteAsset();
         AcquireOutline();
         ApplyLocalization(); // Localize partial
     }
 
     // 런타임: 풀 반납. 에디터: 모든 임시 프리뷰 정리 + 원본 복원.
-    private void OnDisable()
+    protected virtual void OnDisable()
     {
 #if UNITY_EDITOR
         if (!Application.isPlaying)
@@ -99,6 +100,19 @@ public partial class UI_Text : MonoBehaviour
     #endregion
 
     #region Initialization
+
+    /// <summary>
+    /// 레거시 UI.Initialize와 같은 1회 초기화 계약을 제공합니다.
+    /// TMP 캐시 초기화와 분리되어 있어 Awake 뒤 첫 호출도 true를 반환합니다.
+    /// </summary>
+    public virtual bool Initialize()
+    {
+        EnsureInit();
+        if (_compatibilityInitialized) return false;
+
+        _compatibilityInitialized = true;
+        return true;
+    }
 
     // TMP_Text 캐싱 + (isResizeText 시) 부모 RectTransform 캐싱. 1회만 실행.
     private void EnsureInit()

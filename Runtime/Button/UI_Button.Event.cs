@@ -47,7 +47,10 @@ public partial class UI_Button
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        if (_pointerDown) ReleasePressEffect();
+        if (!_pointerDown) return;
+
+        ReleasePressEffect();
+        CancelHold();
     }
 
     public void OnPointerDown(PointerEventData eventData)
@@ -56,6 +59,7 @@ public partial class UI_Button
 
         _pointerDown = true;
         ApplyPressEffect();
+        NotifyPointerDown();
     }
 
     public void OnPointerUp(PointerEventData eventData)
@@ -63,12 +67,21 @@ public partial class UI_Button
         if (!IsLeftButton(eventData) || !_pointerDown) return;
 
         _pointerDown = false;
+        NotifyPointerUp();
         ReleasePressEffect();
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (!IsLeftButton(eventData) || !IsInteractionAllowed()) return;
+        if (!IsInteractionAllowed()) return;
+
+        if (eventData != null && eventData.button == PointerEventData.InputButton.Right)
+        {
+            NotifyRightClick();
+            return;
+        }
+
+        if (!IsLeftButton(eventData)) return;
         ClickEvent.Invoke();
     }
 
@@ -103,6 +116,7 @@ public partial class UI_Button
     private void CancelPointerInteraction()
     {
         _pointerDown = false;
+        CancelHold();
         CancelPressReturnAnimation(true);
         ClearCapturedPressScale();
     }

@@ -14,6 +14,10 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Image))]
 public class UI_Image : UI_Rect
 {
+#if UNITY_EDITOR
+    private const string DefaultMaskSpritePath = "UI/Skin/UIMask.psd";
+#endif
+
     public enum AspectMode
     {
         None, // 비율 맞춤 안 함
@@ -34,9 +38,10 @@ public class UI_Image : UI_Rect
     [SerializeField, ShowIf(nameof(coverFill))] private Vector2 coverMaxAspect = new Vector2(9f, 16f); // cover 가로:세로 최대 비율 캡. 부모가 이보다 가로로 넓으면 그 비율까지만 채움. 0 이하면 캡 비활성 (coverFill=true일 때만 노출)
     [SerializeField, ShowIf(nameof(coverFill))] private Vector2 coverPivot = new Vector2(0.5f, 0.5f); // cover 정렬 기준점 (0~1). (0.5,0.5)=중앙, (0.5,1)=상단 정렬(넘침 하단), (0.5,0)=하단 정렬(넘침 상단) (coverFill=true일 때만 노출)
 
-    [SerializeField, HideInInspector] private Image _image; // 직렬화 캐시 — Reset/OnValidate가 자동 채움
+    [SerializeField, HideInInspector] protected Image _image; // 직렬화 캐시 — Reset/OnValidate가 자동 채움. 레거시 파생 타입 호환을 위해 protected 유지
 
     private CancellationTokenSource _coverReapplyCts; // cover 1프레임 지연 재적용 라이프사이클
+    private bool _legacyInitialized;
 
     #endregion
 
@@ -70,6 +75,10 @@ public class UI_Image : UI_Rect
         get => Image.color;
         set => Image.color = value;
     }
+    /// <summary>레거시 UI_Image 호환용 머티리얼 읽기 별칭입니다.</summary>
+    public Material Material => Image.material;
+    /// <summary>레거시 UI_Image 호환용 RectTransform 별칭입니다.</summary>
+    public RectTransform Rect => Image.rectTransform;
     public float Alpha
     {
         get => Image.color.a;
@@ -90,6 +99,8 @@ public class UI_Image : UI_Rect
         get => Image.fillAmount;
         set => Image.fillAmount = value;
     }
+    /// <summary>레거시 UI_Image.Fill 읽기 별칭입니다.</summary>
+    public float Fill => FillAmount;
 
     #endregion
 
@@ -97,6 +108,7 @@ public class UI_Image : UI_Rect
 
     protected virtual void OnEnable()
     {
+        Initialize();
         ApplyMaxSize();
         if (updateAspectRatio) ApplyAspectRatio();
         if (coverFill)
@@ -158,6 +170,12 @@ public class UI_Image : UI_Rect
     {
 #if UNITY_EDITOR
         _image = GetComponent<Image>();
+        if (_image != null
+            && _image.sprite == null
+            && _image.material == _image.defaultMaterial)
+        {
+            _image.sprite = UnityEditor.AssetDatabase.GetBuiltinExtraResource<Sprite>(DefaultMaskSpritePath);
+        }
 #endif
     }
 
@@ -183,6 +201,20 @@ public class UI_Image : UI_Rect
     #region Public Methods
 
     /// <summary>
+    /// 레거시 UI.Initialize와 같은 1회 초기화 계약을 제공합니다.
+    /// 파생 타입은 <c>if (!base.Initialize()) return false;</c> 패턴을 유지할 수 있습니다.
+    /// </summary>
+    public virtual bool Initialize()
+    {
+        if (_legacyInitialized) return false;
+
+        if (_image == null) _image = GetComponent<Image>();
+        _ = RectTransform;
+        _legacyInitialized = true;
+        return true;
+    }
+
+    /// <summary>
     /// Resources 경로로 Sprite를 로드하여 설정합니다. setMaxSize=true면 적용 후 즉시 ApplyMaxSize.
     /// </summary>
     public void SetSprite(string resourcePath)
@@ -202,6 +234,20 @@ public class UI_Image : UI_Rect
     /// Image의 SetNativeSize를 호출합니다.
     /// </summary>
     public void SetNativeSize() => Image.SetNativeSize();
+
+    /// <summary>색상을 설정하고 현재 래퍼를 반환합니다.</summary>
+    public UI_Image SetColor(Color color)
+    {
+        Color = color;
+        return this;
+    }
+
+    /// <summary>Image.fillAmount를 설정하고 현재 래퍼를 반환합니다.</summary>
+    public UI_Image SetFill(float amount)
+    {
+        FillAmount = amount;
+        return this;
+    }
 
     /// <summary>
     /// maxWidth/maxHeight 안쪽으로 현재 sprite 원본 비율을 유지하며 최대 크기로 RectTransform.sizeDelta를 적용합니다.
@@ -304,6 +350,23 @@ public class UI_Image : UI_Rect
     #region Editor Resizer
 
 #if UNITY_EDITOR
+    [SerializeField] private bool _isSpriteSwapTarget;
+    [SerializeField, ShowIf(nameof(_isSpriteSwapTarget))] private string _spriteSlotKey;
+
+    public bool IsSpriteSwapTarget => _isSpriteSwapTarget;
+    public string SpriteSlotKey => _spriteSlotKey;
+
+    /// <summary>에디터 테마 스왑이 해석한 Sprite를 Undo 가능한 방식으로 적용합니다.</summary>
+    public void EditorApplySprite(Sprite sprite)
+    {
+        Image image = GetComponent<Image>();
+        if (image == null) return;
+
+        UnityEditor.Undo.RecordObject(image, "UI_Image Sprite Swap");
+        image.sprite = sprite;
+        UnityEditor.EditorUtility.SetDirty(image);
+    }
+
     [Serializable]
     public class Editor_Resizer
     {

@@ -14,8 +14,24 @@ public partial class UI_Button : UI_Image,
     IPointerUpHandler,
     IPointerClickHandler
 {
+    private bool _foundationInitialized;
+
     private void Awake()
     {
+        EnsureFoundationInitialized();
+    }
+
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+        Initialize();
+    }
+
+    private void EnsureFoundationInitialized()
+    {
+        if (_foundationInitialized) return;
+        _foundationInitialized = true;
+
         InitializeInteractableState();
 
         InitSprite();           // Sprite              — _normalSprite 기록

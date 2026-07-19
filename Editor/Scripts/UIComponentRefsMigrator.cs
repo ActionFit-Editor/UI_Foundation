@@ -13,6 +13,7 @@ using UnityEngine.UI;
 public static class UIComponentRefsMigrator
 {
     private const string MENU_PATH = "Tools/Package/UI Foundation/Migrate Component Refs";
+    private static readonly string[] ProjectAssetFolders = { "Assets" };
 
     [MenuItem(MENU_PATH, false, 20)]
     private static void Run()
@@ -40,11 +41,16 @@ public static class UIComponentRefsMigrator
     // 모든 .prefab 자산을 순회하며 UI 컴포넌트 캐시 채움
     private static int MigratePrefabs()
     {
-        string[] guids = AssetDatabase.FindAssets("t:Prefab");
+        string[] guids = AssetDatabase.FindAssets("t:Prefab", ProjectAssetFolders);
         int touched = 0;
         for (int i = 0; i < guids.Length; i++)
         {
             string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+            if (!IsProjectAssetPath(path))
+            {
+                UnityEngine.Debug.LogError($"[UIComponentRefsMigrator] Refusing non-project prefab path: {path}");
+                continue;
+            }
             EditorUtility.DisplayProgressBar(
                 "UIComponentRefsMigrator",
                 $"Prefab {i + 1}/{guids.Length}: {path}",
@@ -75,11 +81,16 @@ public static class UIComponentRefsMigrator
     // 모든 .unity 씬을 순회하며 UI 컴포넌트 캐시 채움
     private static int MigrateScenes()
     {
-        string[] guids = AssetDatabase.FindAssets("t:Scene");
+        string[] guids = AssetDatabase.FindAssets("t:Scene", ProjectAssetFolders);
         int touched = 0;
         for (int i = 0; i < guids.Length; i++)
         {
             string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+            if (!IsProjectAssetPath(path))
+            {
+                UnityEngine.Debug.LogError($"[UIComponentRefsMigrator] Refusing non-project scene path: {path}");
+                continue;
+            }
             EditorUtility.DisplayProgressBar(
                 "UIComponentRefsMigrator",
                 $"Scene {i + 1}/{guids.Length}: {path}",
@@ -160,6 +171,12 @@ public static class UIComponentRefsMigrator
         }
 
         return dirtied;
+    }
+
+    private static bool IsProjectAssetPath(string path)
+    {
+        return !string.IsNullOrEmpty(path)
+               && (path == "Assets" || path.StartsWith("Assets/", System.StringComparison.Ordinal));
     }
 }
 #endif

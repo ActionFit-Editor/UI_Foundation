@@ -21,12 +21,5 @@ MonoBehaviour:
   _description: "UI_Text, UI_Button \uB4F1 ActionFit \uACF5\uC6A9 UGUI wrapper\uC640
     \uC9C1\uB82C\uD654 \uD638\uD658 \uACC4\uC57D\uC744 \uC81C\uACF5\uD558\uB294 \uAE30\uBC18
     \uD328\uD0A4\uC9C0."
-  _releaseNote: "- UI_Button\uC774 native Button \uC5C6\uC774 \uD3EC\uC778\uD130
-    \uC785\uB825, \uD074\uB9AD \uC774\uBCA4\uD2B8\uC640 interactable \uC0C1\uD0DC\uB97C
-    \uC9C1\uC811 \uCC98\uB9AC\uD569\uB2C8\uB2E4.\n- UIButtonPressEffect\uC758 press
-    \uC2A4\uCF00\uC77C \uB3D9\uC791\uC744 UI_Button\uC5D0 \uD1B5\uD569\uD558\uACE0
-    \uB3C5\uB9BD \uC0AC\uC6A9 \uD0C0\uC785\uC740 \uC720\uC9C0\uD588\uC2B5\uB2C8\uB2E4.\n-
-    preview/\uD655\uC778/\uAC80\uC99D \uB2E8\uACC4\uB97C \uAC16\uCD98 legacy Button
-    \uBC0F PressEffect \uB9C8\uC774\uADF8\uB808\uC774\uD130\uC640 \uD68C\uADC0 \uD14C\uC2A4\uD2B8\uB97C
-    \uCD94\uAC00\uD588\uC2B5\uB2C8\uB2E4."
+  _releaseNote: "- UI_Button과 UI_Text에 레거시 이벤트·초기화·수명주기 호환 API를 보강해 자식 Text부터 부모 Button 순서로 단계적으로 옮길 수 있습니다.\n- Image가 없는 클릭 영역용 UI_Clickable을 추가해 native Image, Button, EventTrigger를 강제로 만들지 않고 포인터 입력을 처리할 수 있습니다.\n- UI_Image와 UI_Scroll에 레거시 API를 보강하고 새 Image/Button의 Sprite가 None이면 Unity 기본 UIMask를 사용해 기존 wrapper와의 동작 차이를 줄였습니다.\n- 클릭음, 햅틱, 상태색 provider 계약을 확장해 게임 전용 피드백은 소비 프로젝트 adapter에 남길 수 있습니다.\n- Caution: migrator는 Assets/만 수정하며 UI_Button은 직렬화 호환을 위해 계속 Image 기반입니다. Image 없는 대상은 UI_Clickable로 분류한 뒤 이관하세요."
   _dependenciesOverride: 
