@@ -36,6 +36,7 @@ namespace ActionFit.UIFoundation.Editor.Tests
             yield return EditorScript("5291e73137c0410d80f78e73f5a61c9c", "UI_TextEditorPreviewCoordinator.cs", typeof(UI_TextEditorPreviewCoordinator));
             yield return EditorScript("5081d88b4ea347d5a1ce09ab29fc9108", "UI_MaskBaseEditor.cs", typeof(UI_MaskBaseEditor));
             yield return EditorScript("b9943d1409fc24ec795cc72a1734d0d9", "UIComponentRefsMigrator.cs", typeof(UIComponentRefsMigrator));
+            yield return EditorScript("5f847eaa5cad4f4f9c0f1f3d7c8bb06d", "UI_ButtonLegacyMigrator.cs", typeof(UI_ButtonLegacyMigrator));
             yield return EditorScript("c4ce8c4eea0f4730b7a7e92f7bd52d8d", "ChainedVector3Drawer.cs", typeof(ChainedVector3Drawer));
         }
 

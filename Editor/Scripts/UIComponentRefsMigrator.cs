@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// UI_Image / UI_Button / UI_Input / UI_Scroll의 직렬화 캐시 필드를
+/// UI_Image / UI_Input / UI_Scroll의 직렬화 캐시 필드를
 /// 기존 prefab/씬에 일괄로 채워주는 1회성 마이그레이션 메뉴.
 /// SerializedObject로 직접 objectReferenceValue를 set하므로 OnValidate 발화 의존 없이 확실하게 동작.
 /// </summary>
@@ -19,7 +19,7 @@ public static class UIComponentRefsMigrator
     {
         if (!EditorUtility.DisplayDialog(
                 "Migrate UI Component Refs",
-                "모든 prefab/씬의 UI_Image/UI_Button 직렬화 캐시(_image/_button)를 채웁니다.\n장시간 소요될 수 있습니다. 진행할까요?",
+                "모든 prefab/씬의 UI_Image/UI_Input/UI_Scroll 직렬화 캐시(_image/_inputField/_scrollRect)를 채웁니다.\n장시간 소요될 수 있습니다. 진행할까요?",
                 "Run", "Cancel"))
             return;
 
@@ -37,7 +37,7 @@ public static class UIComponentRefsMigrator
         }
     }
 
-    // 모든 .prefab 자산을 순회하며 UI_Image/UI_Button 캐시 채움
+    // 모든 .prefab 자산을 순회하며 UI 컴포넌트 캐시 채움
     private static int MigratePrefabs()
     {
         string[] guids = AssetDatabase.FindAssets("t:Prefab");
@@ -72,7 +72,7 @@ public static class UIComponentRefsMigrator
         return touched;
     }
 
-    // 모든 .unity 씬을 순회하며 UI_Image/UI_Button 캐시 채움
+    // 모든 .unity 씬을 순회하며 UI 컴포넌트 캐시 채움
     private static int MigrateScenes()
     {
         string[] guids = AssetDatabase.FindAssets("t:Scene");
@@ -108,8 +108,8 @@ public static class UIComponentRefsMigrator
         return touched;
     }
 
-    // root 하위의 UI_Image / UI_Button 컴포넌트에 _image / _button 직렬화 필드 set.
-    // UI_Button은 UI_Image를 상속하므로 GetComponentsInChildren<UI_Image>로 둘 다 잡힘. _button은 별도 처리.
+    // root 하위의 UI_Image / UI_Input / UI_Scroll 컴포넌트 직렬화 캐시를 채움.
+    // UI_Button은 UI_Image를 상속하므로 _image 캐시는 GetComponentsInChildren<UI_Image>에서 함께 처리됨.
     private static bool PopulateRefs(GameObject root)
     {
         bool dirtied = false;
@@ -124,21 +124,6 @@ public static class UIComponentRefsMigrator
             if (prop != null && prop.objectReferenceValue != image)
             {
                 prop.objectReferenceValue = image;
-                so.ApplyModifiedPropertiesWithoutUndo();
-                dirtied = true;
-            }
-        }
-
-        foreach (var c in root.GetComponentsInChildren<UI_Button>(includeInactive: true))
-        {
-            var button = c.GetComponent<Button>();
-            if (button == null) continue;
-
-            var so = new SerializedObject(c);
-            var prop = so.FindProperty("_button");
-            if (prop != null && prop.objectReferenceValue != button)
-            {
-                prop.objectReferenceValue = button;
                 so.ApplyModifiedPropertiesWithoutUndo();
                 dirtied = true;
             }

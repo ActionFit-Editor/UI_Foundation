@@ -2,6 +2,8 @@ using System.Reflection;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace ActionFit.UIFoundation.Editor.Tests
 {
@@ -24,6 +26,9 @@ namespace ActionFit.UIFoundation.Editor.Tests
                 UIButtonServices.ClickSoundPlayer = sound;
                 UIButtonServices.Theme = new FixedTheme(sprite);
 
+                Assert.That(gameObject.GetComponent<Button>(), Is.Null);
+                Assert.That(gameObject.GetComponent<UIButtonPressEffect>(), Is.Null);
+
                 MethodInfo registerSound = typeof(UI_Button).GetMethod(
                     "RegisterClickSound",
                     BindingFlags.Instance | BindingFlags.NonPublic);
@@ -32,16 +37,21 @@ namespace ActionFit.UIFoundation.Editor.Tests
 
                 int callbackCount = 0;
                 button.AddListener(() => callbackCount++);
-                button.Button.onClick.Invoke();
+                button.OnPointerClick(Pointer(PointerEventData.InputButton.Left));
                 Assert.That(callbackCount, Is.EqualTo(1));
                 Assert.That(sound.Count, Is.EqualTo(1));
 
                 button.SetDisable();
                 Assert.That(button.IsDisabled, Is.True);
-                Assert.That(button.Button.interactable, Is.False);
+                button.OnPointerClick(Pointer(PointerEventData.InputButton.Left));
+                Assert.That(callbackCount, Is.EqualTo(1));
                 button.SetEnable();
                 Assert.That(button.IsDisabled, Is.False);
-                Assert.That(button.Button.interactable, Is.True);
+                button.OnPointerClick(Pointer(PointerEventData.InputButton.Right));
+                Assert.That(callbackCount, Is.EqualTo(1));
+                button.OnPointerClick(Pointer(PointerEventData.InputButton.Left));
+                Assert.That(callbackCount, Is.EqualTo(2));
+                Assert.That(sound.Count, Is.EqualTo(2));
 
                 button.SetButtonSprite(UI_Button.ButtonSprite.Green);
                 Assert.That(button.Sprite, Is.SameAs(sprite));
@@ -53,6 +63,52 @@ namespace ActionFit.UIFoundation.Editor.Tests
                 Object.DestroyImmediate(gameObject);
                 if (sprite != null) Object.DestroyImmediate(sprite);
                 if (texture != null) Object.DestroyImmediate(texture);
+            }
+        }
+
+        [Test]
+        public void ButtonHonorsCanvasGroupsAndRestoresPressScaleAcrossPointerTransitions()
+        {
+            var outer = new GameObject("Outer", typeof(RectTransform), typeof(CanvasGroup));
+            var bridge = new GameObject("Bridge", typeof(RectTransform), typeof(CanvasGroup));
+            var buttonObject = new GameObject("PointerButton", typeof(RectTransform), typeof(CanvasRenderer));
+            try
+            {
+                bridge.transform.SetParent(outer.transform, false);
+                buttonObject.transform.SetParent(bridge.transform, false);
+                UI_Button button = buttonObject.AddComponent<UI_Button>();
+                var outerGroup = outer.GetComponent<CanvasGroup>();
+                var bridgeGroup = bridge.GetComponent<CanvasGroup>();
+                int clickCount = 0;
+                button.AddListener(() => clickCount++);
+
+                outerGroup.interactable = false;
+                button.OnPointerClick(Pointer(PointerEventData.InputButton.Left));
+                Assert.That(clickCount, Is.Zero);
+
+                outerGroup.interactable = true;
+                outerGroup.blocksRaycasts = false;
+                button.OnPointerClick(Pointer(PointerEventData.InputButton.Left));
+                Assert.That(clickCount, Is.Zero);
+
+                outerGroup.interactable = false;
+                outerGroup.blocksRaycasts = true;
+                bridgeGroup.ignoreParentGroups = true;
+                button.OnPointerClick(Pointer(PointerEventData.InputButton.Left));
+                Assert.That(clickCount, Is.EqualTo(1));
+
+                button.OnPointerDown(Pointer(PointerEventData.InputButton.Left));
+                Assert.That(button.transform.localScale, Is.EqualTo(Vector3.one * 0.95f));
+                button.OnPointerExit(Pointer(PointerEventData.InputButton.Left));
+                button.OnPointerEnter(Pointer(PointerEventData.InputButton.Left));
+                Assert.That(button.transform.localScale, Is.EqualTo(Vector3.one * 0.95f));
+
+                button.SetDisable();
+                Assert.That(button.transform.localScale, Is.EqualTo(Vector3.one));
+            }
+            finally
+            {
+                Object.DestroyImmediate(outer);
             }
         }
 
@@ -151,6 +207,11 @@ namespace ActionFit.UIFoundation.Editor.Tests
             private readonly Sprite _sprite;
             public FixedTheme(Sprite sprite) => _sprite = sprite;
             public Sprite GetButtonSprite(UI_Button.ButtonSprite preset) => _sprite;
+        }
+
+        private static PointerEventData Pointer(PointerEventData.InputButton button)
+        {
+            return new PointerEventData(null) { button = button };
         }
     }
 }

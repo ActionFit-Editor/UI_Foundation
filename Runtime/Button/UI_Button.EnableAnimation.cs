@@ -38,7 +38,7 @@ public partial class UI_Button
 #endif
     }
 
-    // Enable 전환 스케일 애니메이션 재생 (매 호출마다 fresh sequence 생성 — UIButtonPressEffect의 DOKill 간섭 대응).
+    // Enable 전환 스케일 애니메이션 재생 (통합 press effect와 별도 ID/취소 수명을 사용).
     // peak 스케일 도달 순간 RestoreNormalVisuals로 sprite/color를 normal로 교체.
     private void PlayEnableAnimation()
     {

@@ -8,8 +8,8 @@ public partial class UI_Button
     // 공용 클릭음 리스너를 onClick에 등록 (중복 방지: 먼저 제거 후 추가). Awake + RemoveAllListeners 후 호출.
     private void RegisterClickSound()
     {
-        Button.onClick.RemoveListener(PlayClickSound);
-        Button.onClick.AddListener(PlayClickSound);
+        ClickEvent.RemoveListener(PlayClickSound);
+        ClickEvent.AddListener(PlayClickSound);
     }
 
     // 클릭 시 공용 클릭음 재생 (Overlay). playClickSound=false면 생략, 클립 미할당 시 PlaySE가 no-op.

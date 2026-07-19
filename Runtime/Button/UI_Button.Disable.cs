@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UI;
 
 /// <summary>
 /// UI_Button — Disable/Enable 상태 오케스트레이터.
@@ -8,6 +7,8 @@ using UnityEngine.UI;
 /// </summary>
 public partial class UI_Button
 {
+    [SerializeField, InspectorName("Interactable")] private bool m_Interactable = true;
+
 #if UNITY_EDITOR
     [SerializeField, InspectorName("Editor_Disable")] private bool editorDisablePreview = false; // 에디터 전용 Disable 비주얼 프리뷰
     private bool _editorPreviewActive;
@@ -15,6 +16,8 @@ public partial class UI_Button
 #endif
 
     private bool _disabled;
+    private bool _runtimeInteractable;
+    private bool _runtimeInteractableInitialized;
     public bool IsDisabled => _disabled;
 
     /// <summary>
@@ -24,7 +27,8 @@ public partial class UI_Button
     public void SetDisable()
     {
         _disabled = true;
-        Button.interactable = false;
+        SetRuntimeInteractable(false);
+        CancelPointerInteraction();
         ApplyDisableSprite();    // DisableSprite    (useDisableSprite 체크 내장)
         ApplyDisableColor();     // DisableColor     (useDisableColor 체크 내장)
         ApplyDisableTextColor(); // DisableTextColor (useDisableTextColor 체크 내장)
@@ -38,7 +42,7 @@ public partial class UI_Button
     {
         bool wasDisabled = _disabled;
         _disabled = false;
-        Button.interactable = true;
+        SetRuntimeInteractable(true);
         if (useEnableAnimation && wasDisabled)
         {
             // Sprite/Color는 애니메이션 peak에서 교체
@@ -71,18 +75,50 @@ public partial class UI_Button
         return new Color(c.r * f, c.g * f, c.b * f, c.a);
     }
 
+    private bool IsInteractableState
+    {
+        get
+        {
+            InitializeInteractableState();
+            return _runtimeInteractable;
+        }
+    }
+
+    private void InitializeInteractableState()
+    {
+        if (_runtimeInteractableInitialized) return;
+        _runtimeInteractable = m_Interactable;
+        _runtimeInteractableInitialized = true;
+    }
+
+    private void SetRuntimeInteractable(bool interactable)
+    {
+        InitializeInteractableState();
+        _runtimeInteractable = interactable;
+    }
+
+    private void ResetInteractableState()
+    {
+        m_Interactable = true;
+        ResetRuntimeInteractableState();
+    }
+
+    private void ResetRuntimeInteractableState()
+    {
+        _runtimeInteractable = m_Interactable;
+        _runtimeInteractableInitialized = true;
+    }
+
 #if UNITY_EDITOR
     public void ApplyEditorDisablePreview()
     {
         if (Application.isPlaying) return;
 
-        if (_button == null) _button = GetComponent<Button>();
-
         bool wasEditorPreviewActive = _editorPreviewActive;
         if (_editorPreviewActive || _disabled)
         {
             _disabled = false;
-            Button.interactable = _editorPreviewActive ? _editorPreviewOriginalInteractable : true;
+            SetRuntimeInteractable(_editorPreviewActive ? _editorPreviewOriginalInteractable : true);
             RestoreNormalVisuals();
             _editorPreviewActive = false;
         }
@@ -94,14 +130,14 @@ public partial class UI_Button
 
         if (editorDisablePreview)
         {
-            _editorPreviewOriginalInteractable = Button.interactable;
+            _editorPreviewOriginalInteractable = IsInteractableState;
             _editorPreviewActive = true;
             SetDisable();
         }
         else
         {
             _disabled = false;
-            if (wasEditorPreviewActive) Button.interactable = _editorPreviewOriginalInteractable;
+            if (wasEditorPreviewActive) SetRuntimeInteractable(_editorPreviewOriginalInteractable);
             RestoreNormalVisuals();
         }
     }
