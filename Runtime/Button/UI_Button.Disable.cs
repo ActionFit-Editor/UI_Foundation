@@ -13,25 +13,12 @@ public partial class UI_Button
     [SerializeField, InspectorName("Editor_Disable")] private bool editorDisablePreview = false; // 에디터 전용 Disable 비주얼 프리뷰
     private bool _editorPreviewActive;
     private bool _editorPreviewOriginalInteractable;
-    private bool _suppressSerializedInteractableWrite;
 #endif
 
     private bool _disabled;
     private bool _runtimeInteractable;
     private bool _runtimeInteractableInitialized;
-    public bool Interactable
-    {
-        get => IsInteractableState;
-        set => SetInteractable(value);
-    }
-    public bool IsDisabled
-    {
-        get
-        {
-            InitializeInteractableState();
-            return _disabled;
-        }
-    }
+    public bool IsDisabled => _disabled;
 
     /// <summary>
     /// 버튼을 비활성화합니다.
@@ -39,7 +26,6 @@ public partial class UI_Button
     /// </summary>
     public void SetDisable()
     {
-        InitializeInteractableState();
         _disabled = true;
         SetRuntimeInteractable(false);
         CancelPointerInteraction();
@@ -54,7 +40,6 @@ public partial class UI_Button
     /// </summary>
     public void SetEnable()
     {
-        InitializeInteractableState();
         bool wasDisabled = _disabled;
         _disabled = false;
         SetRuntimeInteractable(true);
@@ -103,7 +88,6 @@ public partial class UI_Button
     {
         if (_runtimeInteractableInitialized) return;
         _runtimeInteractable = m_Interactable;
-        _disabled = !m_Interactable;
         _runtimeInteractableInitialized = true;
     }
 
@@ -111,10 +95,6 @@ public partial class UI_Button
     {
         InitializeInteractableState();
         _runtimeInteractable = interactable;
-#if UNITY_EDITOR
-        if (!_suppressSerializedInteractableWrite)
-#endif
-            m_Interactable = interactable;
     }
 
     private void ResetInteractableState()
@@ -126,7 +106,6 @@ public partial class UI_Button
     private void ResetRuntimeInteractableState()
     {
         _runtimeInteractable = m_Interactable;
-        _disabled = !m_Interactable;
         _runtimeInteractableInitialized = true;
     }
 
@@ -135,39 +114,31 @@ public partial class UI_Button
     {
         if (Application.isPlaying) return;
 
-        _suppressSerializedInteractableWrite = true;
-        try
+        bool wasEditorPreviewActive = _editorPreviewActive;
+        if (_editorPreviewActive || _disabled)
         {
-            bool wasEditorPreviewActive = _editorPreviewActive;
-            if (_editorPreviewActive || _disabled)
-            {
-                _disabled = false;
-                SetRuntimeInteractable(_editorPreviewActive ? _editorPreviewOriginalInteractable : true);
-                RestoreNormalVisuals();
-                _editorPreviewActive = false;
-            }
-
-            InitSprite();
-            InitDisableSprite();
-            CacheImageColors();
-            CacheTextMaterials();
-
-            if (editorDisablePreview)
-            {
-                _editorPreviewOriginalInteractable = IsInteractableState;
-                _editorPreviewActive = true;
-                SetDisable();
-            }
-            else
-            {
-                _disabled = false;
-                if (wasEditorPreviewActive) SetRuntimeInteractable(_editorPreviewOriginalInteractable);
-                RestoreNormalVisuals();
-            }
+            _disabled = false;
+            SetRuntimeInteractable(_editorPreviewActive ? _editorPreviewOriginalInteractable : true);
+            RestoreNormalVisuals();
+            _editorPreviewActive = false;
         }
-        finally
+
+        InitSprite();
+        InitDisableSprite();
+        CacheImageColors();
+        CacheTextMaterials();
+
+        if (editorDisablePreview)
         {
-            _suppressSerializedInteractableWrite = false;
+            _editorPreviewOriginalInteractable = IsInteractableState;
+            _editorPreviewActive = true;
+            SetDisable();
+        }
+        else
+        {
+            _disabled = false;
+            if (wasEditorPreviewActive) SetRuntimeInteractable(_editorPreviewOriginalInteractable);
+            RestoreNormalVisuals();
         }
     }
 #endif

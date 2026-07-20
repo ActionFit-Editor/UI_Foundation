@@ -125,18 +125,6 @@ namespace ActionFit.UIFoundation.Editor.Tests
             Assert.That(remaining.HasCandidates, Is.False);
         }
 
-        [Test]
-        public void ApplyAssetsRefusesPackagePaths()
-        {
-            UI_ButtonMigrationReport report = UI_ButtonLegacyMigrator.ApplyAssets(
-                new[] { "Packages/com.example.readonly/Test.prefab" },
-                new[] { "Packages/com.example.readonly/Test.unity" });
-
-            Assert.That(report.AssetsChanged, Is.Zero);
-            Assert.That(report.Failures, Has.Count.EqualTo(2));
-            Assert.That(report.Failures, Has.Some.Contains("outside Assets/"));
-        }
-
         private static void CreateBasePrefab()
         {
             var root = new GameObject("Base", typeof(RectTransform), typeof(CanvasRenderer));

@@ -29,7 +29,7 @@ public partial class UI_Button
 
     private void ApplyPressEffect()
     {
-        if (!Transition || !usePressEffect) return;
+        if (!usePressEffect) return;
 
         Transform target = PressTarget;
         if (!_hasDefaultPressScale || _pressedTarget != target)

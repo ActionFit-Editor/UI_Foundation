@@ -1,12 +1,12 @@
 # AI Guide - UI Foundation
 
-This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 2.0.1 without the source project's `Docs/AI`.
+This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 2.0.2 without the source project's `Docs/AI`.
 
 ## Package Identity
 
 - Package ID: `com.actionfit.ui.foundation`
 - Display name: `UI Foundation`
-- Current package version at generation time: `2.0.1`
+- Current package version at generation time: `2.0.2`
 - Minimum Unity: `6000.2`
 - Public repository: `https://github.com/ActionFit-Editor/UI_Foundation.git`
 - Human guide: `Packages/com.actionfit.ui.foundation/README.md`
@@ -35,7 +35,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
 - Handle DOTween symbol configuration, provider adapters, or shader stripping.
 - Prepare package metadata or a release.
 
-## Actual 2.0.1 Layout
+## Actual 2.0.2 Layout
 
 - `Runtime/com.actionfit.ui.foundation.asmdef`
   - assembly name: `com.actionfit.ui.foundation`
@@ -47,9 +47,9 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
   - references Runtime, `UnityEngine.UI`, `UnityEditor.UI`, `Unity.TextMeshPro`
 - `Runtime/`
   - `AssemblyInfo.cs` grants editor and editor-test assemblies internal access to editor-preview boundaries without adding a runtime-to-Editor dependency
-  - global wrapper types: `UI_Rect`, `UI_Image`, `UI_ImageSlice`, `UI_Input`, `UI_InputBtn`, `UI_Scroll`, image-less `UI_Clickable`
+  - global wrapper types: `UI_Rect`, `UI_Image`, `UI_ImageSlice`, `UI_Input`, `UI_InputBtn`, `UI_Scroll`
   - text/localization: `UI_Text`, inline TMP Sprite Asset tags, Sprite-based runtime asset generation/cache, `ILocaleRefreshable`, `UILocalizationRefreshHub`
-  - button/provider: direct pointer-driven `UI_Button` and `UI_Clickable`, standalone-compatible `UIButtonPressEffect`, click/haptic/state-color/theme provider contracts, `UIButtonServices`
+  - button/provider: direct pointer-driven `UI_Button`, standalone-compatible `UIButtonPressEffect`, `IUIButtonClickSoundPlayer`, `IUIButtonTheme`, `UIButtonServices`
   - mask: `UI_MaskBase`, `UI_Mask`, `UI_Mask2D`
   - sliced fill: `Image_Slice`
   - utilities: `UIEase`, `UIEaseUtility`, `UIAnimationUtility`, `OutlineMaterialCache`, `RuntimeSpriteAssetCache`, inspector attributes
@@ -71,7 +71,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
   - `autoReferenced: false`
   - `UNITY_INCLUDE_TESTS` constraint and `TestAssemblies` optional reference
 
-Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 2.0.1.
+Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 2.0.2.
 
 ## Hard Dependencies
 
@@ -109,27 +109,21 @@ These are public owner contracts. A consuming project decides which game-specifi
 
 ## Component Reference Migration
 
-`Tools/Package/UI Foundation/Migrate Component Refs` scans prefab and scene assets under the consuming project's `Assets/` folder and fills these hidden serialized caches:
+`Tools/Package/UI Foundation/Migrate Component Refs` scans all prefab and scene assets and fills these hidden serialized caches:
 
 - `UI_Image._image`
 - `UI_Input._inputField`
 - `UI_Scroll._scrollRect`
 
-The command saves modified prefabs/scenes and opens scenes sequentially. It must reject paths outside `Assets/` so package-cache and downstream package assets remain immutable. It is a broad write operation: require a clean/committed consumer worktree, warn the user, run once, and review the resulting asset/YAML diff. Do not run it as an unannounced diagnostic step.
+The command saves modified prefabs/scenes and opens scenes sequentially. It is a broad write operation: require a clean/committed consumer worktree, warn the user, run once, and review the resulting asset/YAML diff. Do not run it as an unannounced diagnostic step.
 
 ## `UI_Button` Pointer and Migration Contract
 
-`UI_Button` 2.0.1 has no `[RequireComponent(typeof(Button))]`, cached native `Button`, or public native-Button accessor. It remains an Image-backed `UI_Image` subtype and owns serialized `m_Interactable`, `m_OnClick`, and integrated press-effect configuration. It directly implements enter, exit, down, up, left click, separately gated right click and optional hold behavior. Active/enabled state and the same parent `CanvasGroup` interaction/raycast/`ignoreParentGroups` traversal expected by UGUI gate invocation.
+`UI_Button` 2.0.2 has no `[RequireComponent(typeof(Button))]`, cached native `Button`, or public `UI_Button.Button` accessor. It owns serialized `m_Interactable`, `m_OnClick`, and integrated press-effect configuration. It directly implements enter, exit, down, up, and click pointer handlers; only the left button is accepted. Active/enabled state and the same parent `CanvasGroup` interaction/raycast/`ignoreParentGroups` traversal expected by UGUI gate invocation.
 
-Keep listener APIs, `SetEvent` aliases, right/down/up/hold APIs, `SetActive`, `TabEffect`, `ContextText`, `SetDisable`, `SetEnable`, `SetInteractable`, `Interactable`, `IsDisabled`, feedback, disable visuals, and enable animation behavior compatible. The integrated press effect must preserve exit/re-enter/release/cancellation and must use its own DOTween ID or fallback cancellation owner. `Transition=false` suppresses press scale. Do not restore `ComponentButton` or auto-add a native `Button`. Keyboard/gamepad submit and UGUI Navigation parity are deliberately outside this pointer-only contract.
-
-`UI_Clickable : UI_Rect` is the additive image-less migration target. It must not require or add `Image`, native `Button`, or `EventTrigger`; a project-owned Graphic on the same object or a descendant supplies raycast geometry and event bubbling. Keep its pointer, CanvasGroup, feedback, hold cancellation and legacy alias behavior aligned with `UI_Button` where Image-specific APIs are not involved. Do not change `UI_Button`'s base type to `UI_Clickable` in a 2.x patch.
-
-`UI_Image.Initialize()` is a one-shot virtual compatibility entry point and `OnEnable` invokes it so legacy-derived Image types can keep the `if (!base.Initialize()) return false;` pattern. In the Editor, `UI_Image.Reset` assigns Unity's built-in `UI/Skin/UIMask.psd` only when the required native `Image.sprite` is null and the Image uses its default Material. `UI_Button` inherits this default. Preserve a null Sprite when a custom Material intentionally supplies the rendered texture. Do not move this policy into `OnValidate` or overwrite an existing Sprite, because that would silently rewrite consumer prefabs and scenes. `UI_Clickable` remains exempt because it owns no Image.
+Keep `AddListener`, `RemoveListener`, `RemoveAllListeners`, `SetDisable`, `SetEnable`, `SetInteractable`, `IsDisabled`, click sound, disable visuals, and enable animation behavior compatible. The integrated press effect must preserve exit/re-enter/release/cancellation and must use its own DOTween ID or fallback cancellation owner. Keyboard/gamepad submit and UGUI Navigation parity are deliberately outside this pointer-only contract.
 
 The standalone `UIButtonPressEffect` type, script GUID, and behavior remain for non-`UI_Button` consumers. Do not auto-add it to new `UI_Button` objects.
-
-`UI_Text.Initialize()` is a one-shot compatibility entry point over the existing cache initialization, and its enable/disable lifecycle remains overridable for legacy-derived consumers. Migrate child `UI_Text` components and their source types before a parent legacy button so `UI_Button.ContextText` resolves the Foundation type. A derived override that needs Foundation localization, sprite-asset, or material lifetime behavior must call the base lifecycle method.
 
 Use `Tools/Package/UI Foundation/Preview Legacy UI_Button Migration` first. `Apply Legacy UI_Button Migration...` requires an interactive confirmation; batch apply requires both `UI_ButtonLegacyMigrator.ApplyBatch` and `-uiButtonMigrationApply`. Migration copies native `Button.m_Interactable`, persistent `m_OnClick`, and same-GameObject `UIButtonPressEffect` enable/configuration into `UI_Button`, removes only those legacy components, preserves prefab inheritance and scene overrides, reports per-asset failures without saving failed assets, verifies zero remaining candidates, and is idempotent.
 
@@ -138,10 +132,8 @@ Use `Tools/Package/UI Foundation/Preview Legacy UI_Button Migration` first. `App
 Foundation owns only contracts and a registration point:
 
 - `IUIButtonClickSoundPlayer.PlayClickSound()`
-- `IUIButtonHapticPlayer.PlayHaptic()`
-- `IUIButtonStateColorTheme.GetButtonStateColor(bool)`
 - `IUIButtonTheme.GetButtonSprite(UI_Button.ButtonSprite)`
-- corresponding `UIButtonServices` registration properties
+- `UIButtonServices.ClickSoundPlayer` and `UIButtonServices.Theme`
 
 It must not reference a game's audio singleton, addressables catalog, Resources paths or art assets. With no provider, click sound is a no-op and theme lookup returns `null`; this is a supported standalone state.
 
@@ -224,7 +216,7 @@ When `isSpriteAsset` is enabled, the Inspector exposes automatic or overridden g
 
 ## `UI_Text` Editor Preview Lifecycle
 
-`UI_Text` stores Sprite, Face, Outline, and Underlay settings. Sprite preview uses a local `HideFlags.HideAndDontSave` `TMP_SpriteAsset` and Material, while Face/Outline/Underlay continue using a local `HideFlags.DontSave` Material. Preview objects are not prefab or scene assets and must never be serialized into TMP `m_spriteAsset`, `m_sharedMaterial`, or `m_fontMaterial` fields.
+`UI_Text` stores Sprite, Face, Outline, and Underlay settings. Newly added components default Outline Width to `0.1` and Underlay Offset Y to `-0.5`; disabled toggles keep those authored values inactive. Sprite preview uses a local `HideFlags.HideAndDontSave` `TMP_SpriteAsset` and Material, while Face/Outline/Underlay continue using a local `HideFlags.DontSave` Material. Preview objects are not prefab or scene assets and must never be serialized into TMP `m_spriteAsset`, `m_sharedMaterial`, or `m_fontMaterial` fields.
 
 `UI_TextEditorPreviewCoordinator` lives in the Editor assembly and owns event subscription, delayed scheduling, target filtering, request coalescing, bounded initialization retry, and cleanup. It refreshes after editor initialization, scene open, Prefab Stage open, Inspector Sprite/glyph/material-property changes, Undo/Redo, and Edit Mode re-entry. It restores previews before assembly reload, Prefab Stage close, and Play Mode entry.
 
@@ -255,7 +247,7 @@ Do not silently replace the shader name or keyword/property IDs. Such a change n
 - `Tools/Package/UI Foundation/Preview Legacy UI_Button Migration`: read-only report for legacy native Button/press-effect pairs.
 - `Tools/Package/UI Foundation/Apply Legacy UI_Button Migration...`: preview, explicit confirmation, write, and verification flow.
 
-Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 2.0.1.
+Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 2.0.2.
 
 ## Test and Validation Gate
 
@@ -265,8 +257,7 @@ Run `com.actionfit.ui.foundation.Runtime.Tests` and `com.actionfit.ui.foundation
 - `UIEaseCompatibilityTests`: stable enum names/numeric slots, finite endpoints and linear fallbacks
 - `ImageSliceMeshTests`: four directions, `fillCenter`, tiny fill/zero rect and oversized-border geometry
 - `UIRuntimeContractTests` and `UIWrapperBehaviorTests`: runtime assembly identity, baseline Image/Text/Button/Scroll/Mask behavior, and inline `UI_Text` sprite tags
-- `UI_ButtonLegacyMigratorTests`: exact legacy field/event copy, prefab variant and scene overrides, idempotence, missing-script checks, and non-`Assets/` write rejection
-- `UI_ButtonLegacyCompatibilityTests`, `UIClickableBehaviorTests`, `UIScrollLegacyCompatibilityTests`: additive legacy APIs, feedback/state, image-less pointer behavior, and scroll layout/endpoints
+- `UI_ButtonLegacyMigratorTests`: exact legacy field/event copy, prefab variant and scene overrides, idempotence, and missing-script checks
 - `RuntimeSpriteAssetCacheTests`: Sprite-derived defaults, glyph/character tables, cache reuse/reference count, and original asset restoration
 - `UI_TextEditorPreviewTests`: delayed request coalescing, active/inactive targets, Prefab Stage reopen, Undo/Redo, Sprite/Material preview cleanup, YAML non-serialization, and unchanged scene/prefab dirty state
 

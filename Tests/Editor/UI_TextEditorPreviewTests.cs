@@ -26,7 +26,6 @@ namespace ActionFit.UIFoundation.Editor.Tests
 {
     Properties
     {
-        _MainTex (""Font Atlas"", 2D) = ""white"" {}
         _FaceColor (""Face Color"", Color) = (1,1,1,1)
         _FaceDilate (""Face Dilate"", Float) = 0
         _OutlineColor (""Outline Color"", Color) = (0,0,0,1)

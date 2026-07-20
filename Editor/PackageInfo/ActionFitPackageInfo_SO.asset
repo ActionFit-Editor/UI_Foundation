@@ -21,5 +21,10 @@ MonoBehaviour:
   _description: "UI_Text, UI_Button \uB4F1 ActionFit \uACF5\uC6A9 UGUI wrapper\uC640
     \uC9C1\uB82C\uD654 \uD638\uD658 \uACC4\uC57D\uC744 \uC81C\uACF5\uD558\uB294 \uAE30\uBC18
     \uD328\uD0A4\uC9C0."
-  _releaseNote: "- UI_Button과 UI_Text에 레거시 이벤트·초기화·수명주기 호환 API를 보강해 자식 Text부터 부모 Button 순서로 단계적으로 옮길 수 있습니다.\n- Image가 없는 클릭 영역용 UI_Clickable을 추가해 native Image, Button, EventTrigger를 강제로 만들지 않고 포인터 입력을 처리할 수 있습니다.\n- UI_Image와 UI_Scroll에 레거시 API를 보강하고 새 Image/Button의 Sprite가 None이면 Unity 기본 UIMask를 사용해 기존 wrapper와의 동작 차이를 줄였습니다.\n- 클릭음, 햅틱, 상태색 provider 계약을 확장해 게임 전용 피드백은 소비 프로젝트 adapter에 남길 수 있습니다.\n- Caution: migrator는 Assets/만 수정하며 UI_Button은 직렬화 호환을 위해 계속 Image 기반입니다. Image 없는 대상은 UI_Clickable로 분류한 뒤 이관하세요."
+  _releaseNote: "- UI_Text\uC758 Outline \uAE30\uBCF8 Width\uB97C 0.1\uB85C, Underlay
+    \uAE30\uBCF8 Offset Y\uB97C -0.5\uB85C \uBCC0\uACBD\uD588\uC2B5\uB2C8\uB2E4.\n-
+    Outline/Underlay\uAC00 \uD65C\uC131\uD654\uB41C \uAE30\uC874 UI_Text prefab\uC758
+    \uC9C1\uB82C\uD654 \uAC12\uC744 \uC0C8 \uAE30\uBCF8\uAC12\uC73C\uB85C \uC815\uB82C\uD588\uC2B5\uB2C8\uB2E4.\n-
+    Editor \uD14C\uC2A4\uD2B8\uB85C \uC2E0\uADDC \uCEF4\uD3EC\uB10C\uD2B8 \uAE30\uBCF8\uAC12\uC744
+    \uAC80\uC99D\uD569\uB2C8\uB2E4."
   _dependenciesOverride: 

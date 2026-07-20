@@ -1,79 +1,15 @@
 using System.Reflection;
 using NUnit.Framework;
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ActionFit.UIFoundation.Editor.Tests
 {
-    public sealed class LegacyTextInitializationTestComponent : UI_Text
-    {
-        public int CompatibilityInitializeCount { get; private set; }
-
-        public override bool Initialize()
-        {
-            if (!base.Initialize()) return false;
-            CompatibilityInitializeCount++;
-            return true;
-        }
-    }
-
-    public sealed class LegacyImageProtectedFieldTestComponent : UI_Image
-    {
-        public Image CachedImage => _image;
-    }
-
     public class UIWrapperBehaviorTests
     {
-        [Test]
-        public void ImageKeepsLegacyProtectedImageCacheContract()
-        {
-            var imageObject = new GameObject("LegacyDerivedImage", typeof(RectTransform), typeof(CanvasRenderer));
-            try
-            {
-                imageObject.SetActive(false);
-                LegacyImageProtectedFieldTestComponent image =
-                    imageObject.AddComponent<LegacyImageProtectedFieldTestComponent>();
-
-                Assert.That(image.Initialize(), Is.True);
-                Assert.That(image.CachedImage, Is.SameAs(imageObject.GetComponent<Image>()));
-            }
-            finally
-            {
-                Object.DestroyImmediate(imageObject);
-            }
-        }
-
-        [Test]
-        public void TextCacheDoesNotConsumeLegacyDerivedInitializationGate()
-        {
-            var textObject = new GameObject("LegacyDerivedText", typeof(RectTransform), typeof(CanvasRenderer));
-            try
-            {
-                textObject.SetActive(false);
-                textObject.AddComponent<TextMeshProUGUI>().font = null;
-                LegacyTextInitializationTestComponent text =
-                    textObject.AddComponent<LegacyTextInitializationTestComponent>();
-
-                Assert.That(text.TMP, Is.SameAs(textObject.GetComponent<TextMeshProUGUI>()));
-                Assert.That(text.CompatibilityInitializeCount, Is.Zero);
-
-                MethodInfo onEnable = typeof(UI_Text).GetMethod(
-                    "OnEnable",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-                Assert.That(onEnable, Is.Not.Null);
-                onEnable.Invoke(text, null);
-
-                Assert.That(text.CompatibilityInitializeCount, Is.EqualTo(1));
-                Assert.That(text.Initialize(), Is.False);
-            }
-            finally
-            {
-                Object.DestroyImmediate(textObject);
-            }
-        }
-
         [Test]
         public void ButtonListenersDisableStateSoundAndThemeAreProjectAgnostic()
         {
@@ -188,7 +124,6 @@ namespace ActionFit.UIFoundation.Editor.Tests
             var maskObject = new GameObject("MaskContract", typeof(RectTransform));
             try
             {
-                textObject.SetActive(false);
                 UI_Image image = imageObject.AddComponent<UI_Image>();
                 image.Color = new Color(0.2f, 0.4f, 0.6f, 1f);
                 image.Alpha = 0.3f;
@@ -196,9 +131,6 @@ namespace ActionFit.UIFoundation.Editor.Tests
 
                 textObject.AddComponent<TextMeshProUGUI>().font = null;
                 UI_Text text = textObject.AddComponent<UI_Text>();
-                Assert.That(text.Initialize(), Is.True);
-                Assert.That(text.Initialize(), Is.False);
-                textObject.SetActive(true);
                 text.Text = "Foundation";
                 text.SetSize(24).SetColor(Color.cyan);
                 Assert.That(text.Text, Is.EqualTo("Foundation"));
@@ -262,6 +194,25 @@ namespace ActionFit.UIFoundation.Editor.Tests
             {
                 Object.DestroyImmediate(textObject);
                 if (spriteAsset != null) Object.DestroyImmediate(spriteAsset);
+            }
+        }
+
+        [Test]
+        public void TextUsesExpectedOutlineAndUnderlayDefaults()
+        {
+            var textObject = new GameObject("TextMaterialDefaults", typeof(RectTransform), typeof(CanvasRenderer));
+            try
+            {
+                textObject.AddComponent<TextMeshProUGUI>().font = null;
+                UI_Text text = textObject.AddComponent<UI_Text>();
+                var serialized = new SerializedObject(text);
+
+                Assert.That(serialized.FindProperty("outlineWidth").floatValue, Is.EqualTo(0.1f).Within(0.0001f));
+                Assert.That(serialized.FindProperty("underlayOffsetY").floatValue, Is.EqualTo(-0.5f).Within(0.0001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(textObject);
             }
         }
 

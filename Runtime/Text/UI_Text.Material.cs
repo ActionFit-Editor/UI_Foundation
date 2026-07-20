@@ -17,13 +17,13 @@ public partial class UI_Text
     // Outline (OFF면 외곽선 없음) — 기존 isOutlineColor에서 이름 변경(켜진 프리팹 없음 확인)
     [SerializeField] private bool isSettingOutline = false;
     [SerializeField] private Color outlineColor = Color.black;
-    [SerializeField] private float outlineWidth = 0.2f;
+    [SerializeField] private float outlineWidth = 0.1f;
 
     // Underlay = 그림자 (OFF면 그림자 없음)
     [SerializeField] private bool isSettingUnderlay = false;
     [SerializeField] private Color underlayColor = Color.black;
     [SerializeField] private float underlayOffsetX = 0f;
-    [SerializeField] private float underlayOffsetY = -1f;
+    [SerializeField] private float underlayOffsetY = -0.5f;
     [SerializeField] private float underlayDilate = 0f;
     [SerializeField] private float underlaySoftness = 0f;
 
