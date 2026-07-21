@@ -22,7 +22,6 @@ public partial class UI_Button : UI_Image,
         InitEnableAnimation();  // EnableAnimation     — _baseScale 기록
         InitDisableSprite();    // DisableSprite       — 기본 gray 스프라이트 로드
         CacheImageColors();     // DisableColor        — 원본 color 기록
-        CacheTextMaterials();   // DisableTextColor — 원본 fontSharedMaterial 기록
         RegisterClickSound();   // Sound               — 공용 클릭음 리스너 등록
     }
 

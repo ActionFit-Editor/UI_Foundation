@@ -74,6 +74,7 @@ public partial class UI_Button
 
     protected override void OnDisable()
     {
+        RestoreTextColor();
         base.OnDisable();
         CancelPointerInteraction();
     }

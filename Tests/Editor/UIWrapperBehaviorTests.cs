@@ -114,6 +114,128 @@ namespace ActionFit.UIFoundation.Editor.Tests
         }
 
         [Test]
+        public void ButtonEnableWithoutOwnedTextOverridePreservesCurrentMaterial()
+        {
+            var buttonObject = new GameObject("TextMaterialButton", typeof(RectTransform), typeof(CanvasRenderer));
+            var textObject = new GameObject("TargetText", typeof(RectTransform), typeof(CanvasRenderer));
+            Material initialMaterial = null;
+            Material outlinedMaterial = null;
+            try
+            {
+                textObject.transform.SetParent(buttonObject.transform, false);
+                TextMeshProUGUI targetText = textObject.AddComponent<TextMeshProUGUI>();
+                UI_Button button = buttonObject.AddComponent<UI_Button>();
+                ConfigureDisableTextColor(button, targetText, null);
+
+                initialMaterial = CreateTestMaterial("Initial");
+                outlinedMaterial = CreateTestMaterial("Outlined");
+                targetText.fontSharedMaterial = initialMaterial;
+                InvokeNonPublic(button, "Awake");
+
+                // UI_Text.OnEnable이 버튼 초기화 이후 런타임 outline 재질을 적용한 상황을 재현한다.
+                targetText.fontSharedMaterial = outlinedMaterial;
+                button.SetEnable();
+
+                Assert.That(targetText.fontSharedMaterial, Is.SameAs(outlinedMaterial));
+            }
+            finally
+            {
+                Object.DestroyImmediate(buttonObject);
+                if (outlinedMaterial != null) Object.DestroyImmediate(outlinedMaterial);
+                if (initialMaterial != null) Object.DestroyImmediate(initialMaterial);
+            }
+        }
+
+        [Test]
+        public void ButtonDisableTextColorRestoresExactCurrentMaterialAndIsIdempotent()
+        {
+            var buttonObject = new GameObject("TextMaterialButton", typeof(RectTransform), typeof(CanvasRenderer));
+            var textObject = new GameObject("TargetText", typeof(RectTransform), typeof(CanvasRenderer));
+            Material outlinedMaterial = null;
+            Material disabledMaterial = null;
+            try
+            {
+                textObject.transform.SetParent(buttonObject.transform, false);
+                TextMeshProUGUI targetText = textObject.AddComponent<TextMeshProUGUI>();
+                UI_Button button = buttonObject.AddComponent<UI_Button>();
+                ConfigureDisableTextColor(button, targetText, null);
+
+                outlinedMaterial = CreateTestMaterial("Outlined");
+                targetText.fontSharedMaterial = outlinedMaterial;
+                targetText.color = new Color(0.2f, 0.4f, 0.6f, 0.8f);
+                Color vertexColor = targetText.color;
+
+                Assert.DoesNotThrow(button.SetDisable);
+                disabledMaterial = targetText.fontSharedMaterial;
+                Assert.That(disabledMaterial, Is.Not.SameAs(outlinedMaterial));
+                Assert.That(targetText.color, Is.EqualTo(vertexColor));
+
+                Assert.DoesNotThrow(button.SetDisable);
+                Assert.That(targetText.fontSharedMaterial, Is.SameAs(disabledMaterial));
+
+                Assert.DoesNotThrow(button.SetEnable);
+                Assert.That(targetText.fontSharedMaterial, Is.SameAs(outlinedMaterial));
+                Assert.That(targetText.color, Is.EqualTo(vertexColor));
+
+                Assert.DoesNotThrow(button.SetEnable);
+                Assert.That(targetText.fontSharedMaterial, Is.SameAs(outlinedMaterial));
+            }
+            finally
+            {
+                Object.DestroyImmediate(buttonObject);
+                if (disabledMaterial != null && !ReferenceEquals(disabledMaterial, outlinedMaterial))
+                    Object.DestroyImmediate(disabledMaterial);
+                if (outlinedMaterial != null) Object.DestroyImmediate(outlinedMaterial);
+            }
+        }
+
+        [Test]
+        public void ButtonRestoresOnlyItsOwnedTextMaterialAssignment()
+        {
+            var buttonObject = new GameObject("TextMaterialButton", typeof(RectTransform), typeof(CanvasRenderer));
+            var textObject = new GameObject("TargetText", typeof(RectTransform), typeof(CanvasRenderer));
+            Material outlinedMaterial = null;
+            Material replacementMaterial = null;
+            Material disabledMaterial = null;
+            try
+            {
+                textObject.transform.SetParent(buttonObject.transform, false);
+                TextMeshProUGUI targetText = textObject.AddComponent<TextMeshProUGUI>();
+                UI_Button button = buttonObject.AddComponent<UI_Button>();
+                ConfigureDisableTextColor(button, targetText);
+
+                outlinedMaterial = CreateTestMaterial("Outlined");
+                replacementMaterial = CreateTestMaterial("Replacement");
+                targetText.fontSharedMaterial = outlinedMaterial;
+                button.SetDisable();
+                disabledMaterial = targetText.fontSharedMaterial;
+
+                targetText.fontSharedMaterial = replacementMaterial;
+                button.SetEnable();
+
+                Assert.That(targetText.fontSharedMaterial, Is.SameAs(replacementMaterial));
+
+                targetText.fontSharedMaterial = outlinedMaterial;
+                button.SetDisable();
+                InvokeNonPublic(button, "OnDisable");
+                Assert.That(targetText.fontSharedMaterial, Is.SameAs(outlinedMaterial));
+
+                button.SetDisable();
+                Assert.That(targetText.fontSharedMaterial, Is.SameAs(disabledMaterial));
+                button.SetEnable();
+                Assert.That(targetText.fontSharedMaterial, Is.SameAs(outlinedMaterial));
+            }
+            finally
+            {
+                Object.DestroyImmediate(buttonObject);
+                if (disabledMaterial != null && !ReferenceEquals(disabledMaterial, outlinedMaterial))
+                    Object.DestroyImmediate(disabledMaterial);
+                if (replacementMaterial != null) Object.DestroyImmediate(replacementMaterial);
+                if (outlinedMaterial != null) Object.DestroyImmediate(outlinedMaterial);
+            }
+        }
+
+        [Test]
         public void ImageTextScrollAndMaskExposeStableWrapperBehavior()
         {
             var imageObject = new GameObject("ImageContract", typeof(RectTransform), typeof(CanvasRenderer));
@@ -227,6 +349,34 @@ namespace ActionFit.UIFoundation.Editor.Tests
             private readonly Sprite _sprite;
             public FixedTheme(Sprite sprite) => _sprite = sprite;
             public Sprite GetButtonSprite(UI_Button.ButtonSprite preset) => _sprite;
+        }
+
+        private static void ConfigureDisableTextColor(UI_Button button, params TextMeshProUGUI[] targetTexts)
+        {
+            var serialized = new SerializedObject(button);
+            serialized.FindProperty("useDisableTextColor").boolValue = true;
+            serialized.FindProperty("useEnableAnimation").boolValue = false;
+
+            SerializedProperty targets = serialized.FindProperty("targetTexts");
+            targets.arraySize = targetTexts.Length;
+            for (int i = 0; i < targetTexts.Length; i++)
+                targets.GetArrayElementAtIndex(i).objectReferenceValue = targetTexts[i];
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static Material CreateTestMaterial(string materialName)
+        {
+            Shader shader = Shader.Find("UI/Default") ?? Shader.Find("Hidden/InternalErrorShader");
+            Assert.That(shader, Is.Not.Null);
+            return new Material(shader) { name = materialName };
+        }
+
+        private static void InvokeNonPublic(object target, string methodName)
+        {
+            MethodInfo method = target.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+            method.Invoke(target, null);
         }
 
         private static PointerEventData Pointer(PointerEventData.InputButton button)

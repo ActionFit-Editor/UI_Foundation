@@ -126,7 +126,6 @@ public partial class UI_Button
         InitSprite();
         InitDisableSprite();
         CacheImageColors();
-        CacheTextMaterials();
 
         if (editorDisablePreview)
         {

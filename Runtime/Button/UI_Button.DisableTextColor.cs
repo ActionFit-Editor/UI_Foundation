@@ -11,45 +11,63 @@ public partial class UI_Button
     [SerializeField, ShowIf(nameof(useDisableTextColor))] private TextMeshProUGUI[] targetTexts; // 어둡게 할 TMP 목록 (Inspector 드래그앤드롭)
     [SerializeField, Range(0f, 1f), ShowIf(nameof(useDisableTextColor))] private float disableTextDarkenFactor = 0.4f; // 색 곱 계수(0=검정 / 1=원본, 알파 보존)
 
-    private Dictionary<TextMeshProUGUI, Material> _originalTextMaterials; // targetTexts 각 원본 fontSharedMaterial
-
-    // Awake: targetTexts 각 TMP의 원본 fontSharedMaterial 기록
-    private void CacheTextMaterials()
+    private sealed class TextMaterialOverride
     {
-        int n = targetTexts != null ? targetTexts.Length : 0;
-        _originalTextMaterials = new Dictionary<TextMeshProUGUI, Material>(n);
-        if (targetTexts == null) return;
-        foreach (var tmp in targetTexts)
+        public readonly Material Original;
+        public readonly Material Applied;
+
+        public TextMaterialOverride(Material original, Material applied)
         {
-            if (tmp == null) continue;
-            _originalTextMaterials[tmp] = tmp.fontSharedMaterial;
+            Original = original;
+            Applied = applied;
         }
     }
+
+    // 버튼이 실제로 교체한 재질만 추적한다. UI_Text가 이후 교체한 재질은 버튼 소유가 아니다.
+    private Dictionary<TextMeshProUGUI, TextMaterialOverride> _textMaterialOverrides;
 
     // Disable 시: fontSharedMaterial을 본문(face)+외곽선+underlay+glow 모두 어둡게 한 인스턴스로 교체.
     // ※ tmp.color(버텍스 틴트)는 건드리지 않음 — 외부 코드(텍스트/로컬라이즈 갱신)가 tmp.color를 재설정해도 어둡기가 유지되도록 머티리얼 기반으로 처리. off면 무시.
     private void ApplyDisableTextColor()
     {
         if (!useDisableTextColor || targetTexts == null) return;
-        if (_originalTextMaterials == null) CacheTextMaterials();
+
+        _textMaterialOverrides ??= new Dictionary<TextMeshProUGUI, TextMaterialOverride>(targetTexts.Length);
         foreach (var tmp in targetTexts)
         {
             if (tmp == null) continue;
-            if (_originalTextMaterials.TryGetValue(tmp, out var originalMat) && originalMat != null)
-                tmp.fontSharedMaterial = OutlineMaterialCache.GetDarkened(originalMat, disableTextDarkenFactor);
+
+            if (_textMaterialOverrides.TryGetValue(tmp, out TextMaterialOverride currentOverride))
+            {
+                if (ReferenceEquals(tmp.fontSharedMaterial, currentOverride.Applied)) continue;
+                _textMaterialOverrides.Remove(tmp);
+            }
+
+            Material originalMaterial = tmp.fontSharedMaterial;
+            if (originalMaterial == null) continue;
+
+            Material disabledMaterial = OutlineMaterialCache.GetDarkened(originalMaterial, disableTextDarkenFactor);
+            if (disabledMaterial == null || ReferenceEquals(disabledMaterial, originalMaterial)) continue;
+
+            tmp.fontSharedMaterial = disabledMaterial;
+            _textMaterialOverrides[tmp] = new TextMaterialOverride(originalMaterial, disabledMaterial);
         }
     }
 
-    // 복원: fontSharedMaterial을 원본으로. off면 무시.
+    // 버튼이 적용한 재질이 그대로 남아 있을 때만 원본을 복원한다.
     private void RestoreTextColor()
     {
-        if (targetTexts == null) return;
-        if (_originalTextMaterials == null) return;
-        foreach (var tmp in targetTexts)
+        if (_textMaterialOverrides == null || _textMaterialOverrides.Count == 0) return;
+
+        foreach (KeyValuePair<TextMeshProUGUI, TextMaterialOverride> pair in _textMaterialOverrides)
         {
-            if (tmp == null) continue;
-            if (_originalTextMaterials.TryGetValue(tmp, out var originalMat) && originalMat != null)
-                tmp.fontSharedMaterial = originalMat;
+            TextMeshProUGUI tmp = pair.Key;
+            TextMaterialOverride materialOverride = pair.Value;
+            if (tmp == null || !ReferenceEquals(tmp.fontSharedMaterial, materialOverride.Applied)) continue;
+
+            tmp.fontSharedMaterial = materialOverride.Original;
         }
+
+        _textMaterialOverrides.Clear();
     }
 }

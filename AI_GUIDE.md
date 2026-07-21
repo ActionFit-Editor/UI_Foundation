@@ -1,12 +1,12 @@
 # AI Guide - UI Foundation
 
-This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 2.0.3 without the source project's `Docs/AI`.
+This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 2.0.4 without the source project's `Docs/AI`.
 
 ## Package Identity
 
 - Package ID: `com.actionfit.ui.foundation`
 - Display name: `UI Foundation`
-- Current package version at generation time: `2.0.3`
+- Current package version at generation time: `2.0.4`
 - Minimum Unity: `6000.2`
 - Public repository: `https://github.com/ActionFit-Editor/UI_Foundation.git`
 - Human guide: `Packages/com.actionfit.ui.foundation/README.md`
@@ -35,7 +35,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
 - Handle DOTween symbol configuration, provider adapters, or shader stripping.
 - Prepare package metadata or a release.
 
-## Actual 2.0.3 Layout
+## Actual 2.0.4 Layout
 
 - `Runtime/com.actionfit.ui.foundation.asmdef`
   - assembly name: `com.actionfit.ui.foundation`
@@ -72,7 +72,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
   - `autoReferenced: false`
   - `UNITY_INCLUDE_TESTS` constraint and `TestAssemblies` optional reference
 
-Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 2.0.3.
+Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 2.0.4.
 
 ## Hard Dependencies
 
@@ -121,9 +121,11 @@ The command saves modified prefabs/scenes and opens scenes sequentially. It is a
 
 ## `UI_Button` Pointer and Migration Contract
 
-`UI_Button` 2.0.3 has no `[RequireComponent(typeof(Button))]`, cached native `Button`, or public `UI_Button.Button` accessor. It owns serialized `m_Interactable`, `m_OnClick`, and integrated press-effect configuration. It directly implements enter, exit, down, up, and click pointer handlers; only the left button is accepted. Active/enabled state and the same parent `CanvasGroup` interaction/raycast/`ignoreParentGroups` traversal expected by UGUI gate invocation.
+`UI_Button` 2.0.4 has no `[RequireComponent(typeof(Button))]`, cached native `Button`, or public `UI_Button.Button` accessor. It owns serialized `m_Interactable`, `m_OnClick`, and integrated press-effect configuration. It directly implements enter, exit, down, up, and click pointer handlers; only the left button is accepted. Active/enabled state and the same parent `CanvasGroup` interaction/raycast/`ignoreParentGroups` traversal expected by UGUI gate invocation.
 
 Keep `AddListener`, `RemoveListener`, `RemoveAllListeners`, `SetDisable`, `SetEnable`, `SetInteractable`, `IsDisabled`, click sound, disable visuals, and enable animation behavior compatible. The integrated press effect must preserve exit/re-enter/release/cancellation and must use its own DOTween ID or fallback cancellation owner. Keyboard/gamepad submit and UGUI Navigation parity are deliberately outside this pointer-only contract.
+
+For `Use Disable Text Color`, capture each target's current `fontSharedMaterial` only when `SetDisable()` actually replaces it. Restore only an assignment still referencing the exact disabled Material owned by that button, then clear the ownership record. `SetEnable()` without an owned replacement, a later Material assignment from `UI_Text` or another owner, repeated transitions, and null target entries must remain no-ops for Material restoration. `OnDisable()` restores the button-owned assignment before the target `UI_Text` releases its pooled outline Material; the button must never release, destroy, or mutate `OutlineMaterialCache` reference counts.
 
 The standalone `UIButtonPressEffect` type, script GUID, and behavior remain for non-`UI_Button` consumers. Do not auto-add it to new `UI_Button` objects.
 
@@ -249,7 +251,7 @@ Do not silently replace the shader name or keyword/property IDs. Such a change n
 - `Tools/Package/UI Foundation/Preview Legacy UI_Button Migration`: read-only report for legacy native Button/press-effect pairs.
 - `Tools/Package/UI Foundation/Apply Legacy UI_Button Migration...`: preview, explicit confirmation, write, and verification flow.
 
-Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 2.0.3.
+Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 2.0.4.
 
 ## Test and Validation Gate
 
@@ -258,7 +260,7 @@ Run `com.actionfit.ui.foundation.Runtime.Tests` and `com.actionfit.ui.foundation
 - `UIScriptIdentityTests`: preserved script GUID -> path, type and assembly mappings, plus fixed GUIDs for new runtime utilities
 - `UIEaseCompatibilityTests`: stable enum names/numeric slots, finite endpoints and linear fallbacks
 - `ImageSliceMeshTests`: four directions, `fillCenter`, tiny fill/zero rect and oversized-border geometry
-- `UIRuntimeContractTests` and `UIWrapperBehaviorTests`: runtime assembly identity, baseline Image/Text/Button/Scroll/Mask behavior, and inline `UI_Text` sprite tags
+- `UIRuntimeContractTests` and `UIWrapperBehaviorTests`: runtime assembly identity, baseline Image/Text/Button/Scroll/Mask behavior, inline `UI_Text` sprite tags, button-owned disabled TMP Material restoration, runtime outline preservation, repeated transitions, null targets, external owner replacement, and `OnDisable` cleanup
 - `UI_ButtonLegacyMigratorTests`: exact legacy field/event copy, prefab variant and scene overrides, idempotence, and missing-script checks
 - `RuntimeSpriteAssetCacheTests`: Sprite-derived defaults, glyph/character tables, cache reuse/reference count, and original asset restoration
 - `UI_TextEditorPreviewTests`: delayed request coalescing, active/inactive targets, Prefab Stage reopen, Undo/Redo, Sprite/Material preview cleanup, YAML non-serialization, and unchanged scene/prefab dirty state
