@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Localization;
 
@@ -6,7 +7,8 @@ using UnityEngine.Localization;
 /// isLocalizeText 토글이 켜진 인스턴스만 LocalizedString(테이블+엔트리)을 동기 조회(GetLocalizedString)해 텍스트에 적용하고
 /// UILocalizationRefreshHub에 등록해 언어 변경 시 자동 갱신한다.
 /// (모드 B — 비동기 StringChanged를 쓰지 않아 per-instance 핸들/구독이 없고, 프로젝트의 Hub 갱신 모델과 일관.)
-/// 코드에서 키를 지정하려면 <see cref="SetLocalizeKey"/> 사용.
+/// 코드에서 키를 지정하려면 <see cref="SetLocalizeKey"/>, 포맷 인자를 갱신하려면
+/// <see cref="SetLocalizeArguments"/> 사용.
 /// </summary>
 public partial class UI_Text : ILocaleRefreshable
 {
@@ -43,6 +45,20 @@ public partial class UI_Text : ILocaleRefreshable
         localizedString.SetReference(table, entry); // string → TableReference / TableEntryReference 암시 변환
         RefreshLocalization();
         UILocalizationRefreshHub.Register(this);
+        return this;
+    }
+
+    /// <summary>
+    /// 현재 LocalizedString에 포맷 인자를 지정하고, 유효한 키가 있으면 현재 locale 텍스트를 즉시 갱신합니다.
+    /// 이 메서드는 localization 토글이나 키를 변경하지 않으므로, Inspector 설정 또는
+    /// <see cref="SetLocalizeKey"/>와 함께 사용하세요.
+    /// </summary>
+    public UI_Text SetLocalizeArguments(params object[] arguments)
+    {
+        EnsureInit();
+        localizedString ??= new LocalizedString();
+        localizedString.Arguments = arguments ?? Array.Empty<object>();
+        RefreshLocalization();
         return this;
     }
 }

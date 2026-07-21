@@ -2,7 +2,10 @@
   "name": "com.actionfit.ui.foundation.Runtime.Tests",
   "rootNamespace": "ActionFit.UIFoundation.Runtime.Tests",
   "references": [
-    "com.actionfit.ui.foundation"
+    "com.actionfit.ui.foundation",
+    "UnityEngine.UI",
+    "Unity.TextMeshPro",
+    "Unity.Localization"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

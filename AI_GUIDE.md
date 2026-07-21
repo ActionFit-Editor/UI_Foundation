@@ -1,12 +1,12 @@
 # AI Guide - UI Foundation
 
-This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 2.0.2 without the source project's `Docs/AI`.
+This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 2.0.3 without the source project's `Docs/AI`.
 
 ## Package Identity
 
 - Package ID: `com.actionfit.ui.foundation`
 - Display name: `UI Foundation`
-- Current package version at generation time: `2.0.2`
+- Current package version at generation time: `2.0.3`
 - Minimum Unity: `6000.2`
 - Public repository: `https://github.com/ActionFit-Editor/UI_Foundation.git`
 - Human guide: `Packages/com.actionfit.ui.foundation/README.md`
@@ -35,7 +35,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
 - Handle DOTween symbol configuration, provider adapters, or shader stripping.
 - Prepare package metadata or a release.
 
-## Actual 2.0.2 Layout
+## Actual 2.0.3 Layout
 
 - `Runtime/com.actionfit.ui.foundation.asmdef`
   - assembly name: `com.actionfit.ui.foundation`
@@ -68,10 +68,11 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
   - `UI_TextEditorPreviewTests` covers request coalescing, active and inactive targets, Prefab Mode reopen, Undo/Redo, Sprite/Material cleanup, non-serialization, and dirty-state preservation
 - `Tests/Runtime/com.actionfit.ui.foundation.Runtime.Tests.asmdef`
   - platform-neutral runtime contract tests
+  - references Runtime, `UnityEngine.UI`, `Unity.TextMeshPro`, and `Unity.Localization`
   - `autoReferenced: false`
   - `UNITY_INCLUDE_TESTS` constraint and `TestAssemblies` optional reference
 
-Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 2.0.2.
+Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 2.0.3.
 
 ## Hard Dependencies
 
@@ -104,6 +105,7 @@ When moving or publishing, include every existing `.meta`, compare GUIDs before/
 - `RefreshLocalization()` reapplies the current locale's text. A consumer that already reapplies text on every display or frame does not need a separate hub registration.
 - `UILocalizationRefreshHub.OnRegister(Action)` is a separate callback route. Pair it with `OnUnregister(Action)` at the same active lifetime because callback delegates are not removed by destroyed-object cleanup.
 - `UI_Text.SetLocalizeKey(table, entry)` enables localization, applies the value immediately, and registers the component. Do not add a second registration path around it.
+- `UI_Text.SetLocalizeArguments(params object[])` stores runtime format arguments and immediately reapplies the current locale when the component already has a valid localized reference. It does not enable localization or change the key, so use the Inspector-authored reference or `SetLocalizeKey` as the owner of that configuration.
 
 These are public owner contracts. A consuming project decides which game-specific string source or presenter needs them; this package does not name or depend on that source.
 
@@ -119,7 +121,7 @@ The command saves modified prefabs/scenes and opens scenes sequentially. It is a
 
 ## `UI_Button` Pointer and Migration Contract
 
-`UI_Button` 2.0.2 has no `[RequireComponent(typeof(Button))]`, cached native `Button`, or public `UI_Button.Button` accessor. It owns serialized `m_Interactable`, `m_OnClick`, and integrated press-effect configuration. It directly implements enter, exit, down, up, and click pointer handlers; only the left button is accepted. Active/enabled state and the same parent `CanvasGroup` interaction/raycast/`ignoreParentGroups` traversal expected by UGUI gate invocation.
+`UI_Button` 2.0.3 has no `[RequireComponent(typeof(Button))]`, cached native `Button`, or public `UI_Button.Button` accessor. It owns serialized `m_Interactable`, `m_OnClick`, and integrated press-effect configuration. It directly implements enter, exit, down, up, and click pointer handlers; only the left button is accepted. Active/enabled state and the same parent `CanvasGroup` interaction/raycast/`ignoreParentGroups` traversal expected by UGUI gate invocation.
 
 Keep `AddListener`, `RemoveListener`, `RemoveAllListeners`, `SetDisable`, `SetEnable`, `SetInteractable`, `IsDisabled`, click sound, disable visuals, and enable animation behavior compatible. The integrated press effect must preserve exit/re-enter/release/cancellation and must use its own DOTween ID or fallback cancellation owner. Keyboard/gamepad submit and UGUI Navigation parity are deliberately outside this pointer-only contract.
 
@@ -247,7 +249,7 @@ Do not silently replace the shader name or keyword/property IDs. Such a change n
 - `Tools/Package/UI Foundation/Preview Legacy UI_Button Migration`: read-only report for legacy native Button/press-effect pairs.
 - `Tools/Package/UI Foundation/Apply Legacy UI_Button Migration...`: preview, explicit confirmation, write, and verification flow.
 
-Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 2.0.2.
+Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 2.0.3.
 
 ## Test and Validation Gate
 

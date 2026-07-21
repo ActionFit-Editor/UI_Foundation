@@ -1,5 +1,8 @@
+using System.Reflection;
 using NUnit.Framework;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Localization;
 
 namespace ActionFit.UIFoundation.Runtime.Tests
 {
@@ -34,6 +37,35 @@ namespace ActionFit.UIFoundation.Runtime.Tests
             Assert.That(UIEaseUtility.Evaluate(UIEase.Linear, -1f), Is.EqualTo(0f));
             Assert.That(UIEaseUtility.Evaluate(UIEase.Linear, 0.5f), Is.EqualTo(0.5f));
             Assert.That(UIEaseUtility.Evaluate(UIEase.Linear, 2f), Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void TextLocalizationArgumentsAreStoredAndSetterIsChainable()
+        {
+            var gameObject = new GameObject(
+                "LocalizedText",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(TextMeshProUGUI),
+                typeof(UI_Text));
+            try
+            {
+                UI_Text text = gameObject.GetComponent<UI_Text>();
+
+                Assert.That(text.SetLocalizeArguments(7, "levels"), Is.SameAs(text));
+
+                FieldInfo field = typeof(UI_Text).GetField(
+                    "localizedString",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(field, Is.Not.Null);
+                var localizedString = (LocalizedString)field.GetValue(text);
+                Assert.That(localizedString, Is.Not.Null);
+                Assert.That(localizedString.Arguments, Is.EqualTo(new object[] { 7, "levels" }));
+            }
+            finally
+            {
+                Object.DestroyImmediate(gameObject);
+            }
         }
     }
 }
