@@ -25,6 +25,7 @@ namespace ActionFit.UIFoundation.Editor.Tests
             yield return Script("ba338dd089612434eb19b12d4f415aec", "Runtime/UI_Rect.cs", typeof(UI_Rect));
             yield return Script("455d78208a3d44c58a55ceb68f8e6aa4", "Runtime/UI_Scroll.cs", typeof(UI_Scroll));
             yield return Script("d9a9abbb32fb3a1478762995d5bc93f7", "Runtime/Util/UIButtonPressEffect.cs", typeof(UIButtonPressEffect));
+            yield return Script("f306b52898894266aae652768dc67b62", "Runtime/Util/ScalePulse.cs", typeof(ScalePulse));
         }
 
         private static IEnumerable<TestCaseData> EditorScripts()
@@ -38,6 +39,7 @@ namespace ActionFit.UIFoundation.Editor.Tests
             yield return EditorScript("b9943d1409fc24ec795cc72a1734d0d9", "UIComponentRefsMigrator.cs", typeof(UIComponentRefsMigrator));
             yield return EditorScript("5f847eaa5cad4f4f9c0f1f3d7c8bb06d", "UI_ButtonLegacyMigrator.cs", typeof(UI_ButtonLegacyMigrator));
             yield return EditorScript("c4ce8c4eea0f4730b7a7e92f7bd52d8d", "ChainedVector3Drawer.cs", typeof(ChainedVector3Drawer));
+            yield return EditorScript("5ae794c1b17246ce8c539a408985b8de", "ScalePulseAnimatorMigrator.cs", typeof(ScalePulseAnimatorMigrator));
         }
 
         [TestCaseSource(nameof(RuntimeScripts))]

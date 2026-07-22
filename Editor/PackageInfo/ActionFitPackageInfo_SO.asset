@@ -21,12 +21,5 @@ MonoBehaviour:
   _description: "UI_Text, UI_Button \uB4F1 ActionFit \uACF5\uC6A9 UGUI wrapper\uC640
     \uC9C1\uB82C\uD654 \uD638\uD658 \uACC4\uC57D\uC744 \uC81C\uACF5\uD558\uB294 \uAE30\uBC18
     \uD328\uD0A4\uC9C0."
-  _releaseNote: "- UI_Button\uC774 \uBE44\uD65C\uC131 \uC7AC\uC9C8\uC744 \uC2E4\uC81C
-    \uC801\uC6A9 \uC2DC\uC810\uC5D0 \uCEA1\uCC98\uD558\uACE0 \uC790\uC2E0\uC774 \uAD50\uCCB4\uD55C
-    \uC7AC\uC9C8\uB9CC \uBCF5\uC6D0\uD558\uB3C4\uB85D \uC218\uC815\uD588\uC2B5\uB2C8\uB2E4.\n-
-    UI_Text\uAC00 \uB7F0\uD0C0\uC784\uC5D0 \uC801\uC6A9\uD55C outline \uC7AC\uC9C8\uC744
-    SetEnable \uD638\uCD9C\uC774 \uB36E\uC5B4\uC4F0\uC9C0 \uC54A\uB3C4\uB85D \uC218\uC815\uD588\uC2B5\uB2C8\uB2E4.\n-
-    \uBC18\uBCF5 \uBE44\uD65C\uC131/\uD65C\uC131, null \uB300\uC0C1, \uC678\uBD80
-    \uC7AC\uC9C8 \uAD50\uCCB4\uC640 OnDisable \uBCF5\uC6D0\uC744 \uAC80\uC99D\uD558\uB294
-    Editor \uD68C\uADC0 \uD14C\uC2A4\uD2B8\uB97C \uCD94\uAC00\uD588\uC2B5\uB2C8\uB2E4."
+  _releaseNote: "- `ScalePulse`가 활성 인디케이터를 하나의 공용 위상으로 구동해 컴포넌트별 `Update` 없이 동일한 펄스 효과를 제공합니다.\n- 비활성화와 파괴 시 각 Transform을 활성화 직전 기준 스케일로 복원해 재진입 시 스케일 누적을 방지합니다.\n- `ScalePulseAnimatorMigrator`가 명시된 Animator Controller만 동일 component fileID의 `ScalePulse`로 전환해 prefab 참조를 유지합니다.\n- 공용 위상 합류, 수명주기 복원, exact GUID/fileID 보존과 마이그레이션 멱등성을 검증하는 회귀 테스트를 추가했습니다.\n- Caution: 기존 Animator 전환은 소비 프로젝트가 exact 대상과 제외 경로를 지정하고 Preview 결과를 검토한 뒤 적용해야 합니다."
   _dependenciesOverride: 

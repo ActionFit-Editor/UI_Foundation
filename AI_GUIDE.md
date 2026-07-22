@@ -1,12 +1,12 @@
 # AI Guide - UI Foundation
 
-This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 2.0.4 without the source project's `Docs/AI`.
+This document is shipped with the package so AI assistants in consuming projects can understand the actual structure and compatibility contracts of `com.actionfit.ui.foundation` 2.0.5 without the source project's `Docs/AI`.
 
 ## Package Identity
 
 - Package ID: `com.actionfit.ui.foundation`
 - Display name: `UI Foundation`
-- Current package version at generation time: `2.0.4`
+- Current package version at generation time: `2.0.5`
 - Minimum Unity: `6000.2`
 - Public repository: `https://github.com/ActionFit-Editor/UI_Foundation.git`
 - Human guide: `Packages/com.actionfit.ui.foundation/README.md`
@@ -35,7 +35,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
 - Handle DOTween symbol configuration, provider adapters, or shader stripping.
 - Prepare package metadata or a release.
 
-## Actual 2.0.4 Layout
+## Actual 2.0.5 Layout
 
 - `Runtime/com.actionfit.ui.foundation.asmdef`
   - assembly name: `com.actionfit.ui.foundation`
@@ -52,13 +52,14 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
   - button/provider: direct pointer-driven `UI_Button`, standalone-compatible `UIButtonPressEffect`, `IUIButtonClickSoundPlayer`, `IUIButtonTheme`, `UIButtonServices`
   - mask: `UI_MaskBase`, `UI_Mask`, `UI_Mask2D`
   - sliced fill: `Image_Slice`
-  - utilities: `UIEase`, `UIEaseUtility`, `UIAnimationUtility`, `OutlineMaterialCache`, `RuntimeSpriteAssetCache`, inspector attributes
+  - utilities: `ScalePulse`, `UIEase`, `UIEaseUtility`, `UIAnimationUtility`, `OutlineMaterialCache`, `RuntimeSpriteAssetCache`, inspector attributes
 - `Editor/Scripts/`
   - custom inspectors/drawers
   - `UI_TextEditorPreviewCoordinator` owns delayed, event-driven Sprite/Face/Outline/Underlay preview refresh and cleanup
   - `UIFoundationPackageMenu`
   - `UIComponentRefsMigrator`
   - `UI_ButtonLegacyMigrator`
+  - `ScalePulseAnimatorMigrator` preserves component fileIDs while replacing explicitly selected Animator Controller YAML blocks
 - `Tests/Editor/com.actionfit.ui.foundation.Editor.Tests.asmdef`
   - Editor-only EditMode tests
   - references Runtime, Editor and `UnityEngine.UI`
@@ -72,7 +73,7 @@ Use `package.json` as the source of truth for the package ID, version, Unity ver
   - `autoReferenced: false`
   - `UNITY_INCLUDE_TESTS` constraint and `TestAssemblies` optional reference
 
-Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 2.0.4.
+Do not invent a settings ScriptableObject or `Setting SO` menu: this package does not own one in 2.0.5.
 
 ## Hard Dependencies
 
@@ -121,7 +122,7 @@ The command saves modified prefabs/scenes and opens scenes sequentially. It is a
 
 ## `UI_Button` Pointer and Migration Contract
 
-`UI_Button` 2.0.4 has no `[RequireComponent(typeof(Button))]`, cached native `Button`, or public `UI_Button.Button` accessor. It owns serialized `m_Interactable`, `m_OnClick`, and integrated press-effect configuration. It directly implements enter, exit, down, up, and click pointer handlers; only the left button is accepted. Active/enabled state and the same parent `CanvasGroup` interaction/raycast/`ignoreParentGroups` traversal expected by UGUI gate invocation.
+`UI_Button` 2.0.5 has no `[RequireComponent(typeof(Button))]`, cached native `Button`, or public `UI_Button.Button` accessor. It owns serialized `m_Interactable`, `m_OnClick`, and integrated press-effect configuration. It directly implements enter, exit, down, up, and click pointer handlers; only the left button is accepted. Active/enabled state and the same parent `CanvasGroup` interaction/raycast/`ignoreParentGroups` traversal expected by UGUI gate invocation.
 
 Keep `AddListener`, `RemoveListener`, `RemoveAllListeners`, `SetDisable`, `SetEnable`, `SetInteractable`, `IsDisabled`, click sound, disable visuals, and enable animation behavior compatible. The integrated press effect must preserve exit/re-enter/release/cancellation and must use its own DOTween ID or fallback cancellation owner. Keyboard/gamepad submit and UGUI Navigation parity are deliberately outside this pointer-only contract.
 
@@ -181,6 +182,16 @@ The package asmdef has no explicit `DG.Tweening` assembly reference. Define `DOT
 `UIEase` uses explicit values `0` through `35` aligned with DOTween `Ease` serialization slots. The built-in evaluator implements the standard named families through `InOutBounce` (`1` through `31`). `Unset` and the reserved Flash variants (`32` through `35`) fall back to linear. It has no configurable overshoot, amplitude or period and does not promise exact DOTween curve parity.
 
 The fallback is behavioral continuity, not source/binary API compatibility. Consumer code intended to build in both modes must not assume a `DG.Tweening.Tween` return value or call DOTween extension methods on the fallback result. Validate compilation and cancellation/completion behavior in both symbol configurations.
+
+## `ScalePulse` Contract
+
+`ScalePulse` is a public global-namespace `MonoBehaviour` that registers only its own `Transform`. It has no serialized target or per-instance timing settings. `OnEnable` captures the exact baseline `localScale`; `OnDisable` and `OnDestroy` unregister and restore that baseline.
+
+All active instances share one package-owned phase. The zero-to-one transition starts at ratio `0.8`, one `Awaitable.NextFrameAsync` loop advances a cosine pulse over `0.4` seconds with `Time.deltaTime`, and later registrations immediately join the current ratio without restarting existing instances. The one-to-zero transition stops scheduling and no per-component `Update` exists. `SubsystemRegistration` clears static registrations for domain-reload-disabled Play Mode.
+
+`ScalePulseAnimatorMigrator` is an Editor-only generic Preview/Apply API. A consuming project must provide the exact Animator Controller GUIDs, exact prefab/scene paths, excluded path prefixes, and any exact nested-prefab component references. The migrator changes only matching YAML `Animator` blocks, preserves their component fileID and GameObject reference, and also changes explicitly selected stripped nested references from Animator to MonoBehaviour so serialized fields continue to resolve after field-type migration. Preview reads only; Apply performs targeted file replacement and forced import. It does not discover or embed project asset IDs, scan the whole project implicitly, change field types, delete controller/clip assets, or own consumer confirmation policy.
+
+Cat Merge Cafe binds this generic API through `IndicatorScalePulseProjectMigrator`. Its staged MCC-1579 target excludes every Lava Rush path and `Packages/packages-lock.json`; Lava Rush remains on its existing Animator until the separate post-MCC-1563 migration.
 
 ## `Image_Slice` Contract
 
@@ -250,8 +261,9 @@ Do not silently replace the shader name or keyword/property IDs. Such a change n
 - `Tools/Package/UI Foundation/Migrate Component Refs`: performs the broad serialized-reference migration described above.
 - `Tools/Package/UI Foundation/Preview Legacy UI_Button Migration`: read-only report for legacy native Button/press-effect pairs.
 - `Tools/Package/UI Foundation/Apply Legacy UI_Button Migration...`: preview, explicit confirmation, write, and verification flow.
+- Consumer-owned Indicator migrations call `ScalePulseAnimatorMigrator.Preview` and `Apply` with an explicit request; Foundation does not expose a project-wide default target menu.
 
-Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 2.0.4.
+Keep new package commands under `Tools/Package/UI Foundation/`. There is no settings asset/menu in 2.0.5.
 
 ## Test and Validation Gate
 
@@ -262,6 +274,7 @@ Run `com.actionfit.ui.foundation.Runtime.Tests` and `com.actionfit.ui.foundation
 - `ImageSliceMeshTests`: four directions, `fillCenter`, tiny fill/zero rect and oversized-border geometry
 - `UIRuntimeContractTests` and `UIWrapperBehaviorTests`: runtime assembly identity, baseline Image/Text/Button/Scroll/Mask behavior, inline `UI_Text` sprite tags, button-owned disabled TMP Material restoration, runtime outline preservation, repeated transitions, null targets, external owner replacement, and `OnDisable` cleanup
 - `UI_ButtonLegacyMigratorTests`: exact legacy field/event copy, prefab variant and scene overrides, idempotence, and missing-script checks
+- `ScalePulseTests` and `ScalePulseAnimatorMigratorTests`: dormant empty registry, synchronized lifecycle and baseline restoration, fileID-preserving exact GUID replacement, exclusions and idempotence
 - `RuntimeSpriteAssetCacheTests`: Sprite-derived defaults, glyph/character tables, cache reuse/reference count, and original asset restoration
 - `UI_TextEditorPreviewTests`: delayed request coalescing, active/inactive targets, Prefab Stage reopen, Undo/Redo, Sprite/Material preview cleanup, YAML non-serialization, and unchanged scene/prefab dirty state
 
